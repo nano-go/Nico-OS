@@ -16,16 +16,23 @@ enum ringbuffer_chan{
 	RBUF_READ,
 };
 
+/**
+ * Bound Buffer:
+ *
+ *   0 0 0 0 0 0 * * * * * * 0 0 0 0 0 0 0
+ *               |           |
+ *              tail        head
+ */
 struct ringbuffer {
+	char *buf;
+	uint32_t size;
 	uint32_t head;
 	uint32_t tail;
-	uint32_t size;
 	bool rclosed;
 	bool wclosed;
 	struct spinlock mutex;
 	struct semaphore empty_sem;
 	struct semaphore full_sem;
-	char *buf;
 };
 
 void ringbuffer_init(struct ringbuffer *rbuf, char *buf, uint32_t size);

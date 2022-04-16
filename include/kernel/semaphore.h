@@ -15,7 +15,7 @@ struct task_struct;  // defined in "task.c"
 
 struct semaphore {
 	const char *name;           // Name for debugging.
-	int32_t val;                // Semaphore integer value.
+	int32_t val;                // Condition variable.
 	struct spinlock slock;      // Ensure atomic operation.
 	struct list waiting_tasks;  // List links blocked tasks on the semaphore.
 	struct task_struct* holder; // Task is using this semaphore or NULL.

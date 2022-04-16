@@ -16,11 +16,10 @@ void sem_init(struct semaphore *sem, int32_t initial_val, const char *name) {
 }
 
 void sem_wait(struct semaphore *sem) {
-	struct task_struct *cur_task;
 	bool int_save;
 	spinlock_acquire(&sem->slock, &int_save);
-	
-	cur_task = get_current_task();
+
+	struct task_struct *cur_task = get_current_task();
 	
 	if (-- sem->val < 0) {
 		ASSERT(cur_task->state == TASK_RUNNING);
@@ -39,7 +38,7 @@ void sem_signal(struct semaphore *sem) {
 
 	if (++sem->val <= 0) {
 		ASSERT(!list_empty(&sem->waiting_tasks));
-		// Fetch a waitting task and wakeup it.
+		// Fetch a waiting task and wakeup it.
 		struct task_struct *task = NODE_AS(
 			struct task_struct, list_poll(&sem->waiting_tasks), sem_wait_node);
 		ASSERT(task->state == TASK_BLOCKED);

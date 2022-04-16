@@ -194,13 +194,6 @@ void task_block() {
 	INT_UNLOCK(int_save);
 }
 
-void task_sleep(uint32_t nticks) {
-	int ticks0 = get_tick_count(); // ticks from the device/timer.c
-	while (get_tick_count() - ticks0 < nticks) {
-		task_yield();
-	}
-}
-
 void task_wakeup(struct task_struct *task) {
 	bool int_save;
 	INT_LOCK(int_save);
@@ -209,6 +202,13 @@ void task_wakeup(struct task_struct *task) {
 	task->state = TASK_READY;
 	list_push(&ready_queue, &task->ready_queue_node);
 	INT_UNLOCK(int_save);
+}
+
+void task_sleep(uint32_t nticks) {
+	int ticks0 = get_tick_count();
+	while (get_tick_count() - ticks0 < nticks) {
+		task_yield();
+	}
 }
 
 void task_exit(int status) {
