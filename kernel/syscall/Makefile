@@ -1,0 +1,2 @@
+-include $(TOP_DIR)/config.mk
+-include $(MODULE)

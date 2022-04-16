@@ -1,0 +1,20 @@
+# how much memory the emulated machine will have
+megs: 64
+
+# filename of ROM images
+romimage: file=$USER_PATH/share/bochs/BIOS-bochs-latest
+vgaromimage: file=$USER_PATH/share/bochs/VGABIOS-lgpl-latest
+
+# choose log file
+log: bochsout.txt
+
+# disable the mouse, 
+mouse: enabled=0
+
+# disk
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, path="./nico_os.img", mode=flat
+ata0-slave: type=disk, path="./hd80MB.img", mode=flat
+
+# choose the boot disk.
+boot: disk

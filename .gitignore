@@ -1,0 +1,16 @@
+*.img
+*.elf
+*.bin
+*.o
+*.d
+
+bochsout.txt
+
+# Vim
+*.swp
+
+# Backup
+backup.config.json
+
+mmkfs
+init/init
