@@ -21,7 +21,7 @@ extern "C" {
  *
  *     BOTTOM_USER_STACK..TOP_USER_STACK:  The user stack area.
  *     USER_HEAP_BASE..USER_HEAP_TOP:      The user heap.
- *     USER_BASE..USER_HEAP_BASE:          The user code and data(ELF progs).
+ *     USER_PROG_BASE..USER_PROG_TOP:      The user code and data(ELF progs).
  */
 
 #define NPAGES_USER_STACK    4          // Number of pages for user stack.
@@ -31,6 +31,8 @@ extern "C" {
 
 #define USER_HEAP_BASE (USER_BASE) + 0x4000000
 #define USER_HEAP_TOP  BOTTOM_USER_STACK
+#define USER_PROG_BASE USER_BASE
+#define USER_PROG_TOP  USER_HEAP_BASE
 
 extern struct task_struct *init_proc;
 

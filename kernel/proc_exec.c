@@ -29,14 +29,13 @@ static bool verify_proghdr(struct proghdr *ph) {
 	if ((ph->p_vaddr % PG_SIZE) != 0) {
 		return false;
 	}
-	// The prog must be in the range [USER_BASE..USER_HEAP_BASE).
-	if (ph->p_vaddr >= USER_HEAP_BASE || ph->p_vaddr < USER_BASE) {
-		return false;
-	}
-	return true;
+
+	uint32_t svaddr = ph->p_vaddr;
+	uint32_t evaddr = ph->p_vaddr + ph->p_memsz;
+	return svaddr >= USER_PROG_BASE && evaddr <= USER_PROG_TOP;
 }
 
-static bool load_prohdrs(struct vm *vm, struct elfhdr *elfhdr, struct inode*ip) {
+static bool load_proghdrs(struct vm *vm, struct elfhdr *elfhdr, struct inode*ip) {
 	uint32_t off, i;
 	struct proghdr ph;
 	for (i = 0, off = elfhdr->e_phoff; i < elfhdr->e_phnum;
@@ -61,74 +60,61 @@ static bool load_prohdrs(struct vm *vm, struct elfhdr *elfhdr, struct inode*ip) 
 }
 
 /**
- * These arguments are in the current user process's stack, but we want to 
- * copy them into the new user process's stack. A solution to the problem is 
- * that copy them into the buffer in the kernel stack and then copy the buffer
- * into the new process's stack.
- */
-static char** copy_argv(char *dst_buf, char **src) {
-	int argc = 0;
-	char **copy_argv_ptr;
-	for (char **p = src; *p != NULL; p++, argc++)
-		/* Nothing to do */;
-	
-	copy_argv_ptr = (char **) dst_buf;
-	dst_buf += (argc + 1) * sizeof(char *);
-	
-	for (int i = 0; i < argc; i++) {
-		uint32_t len = strlen(src[i]) + 1;
-		memcpy(dst_buf, src[i], len);
-		copy_argv_ptr[i] = dst_buf;
-		dst_buf += len;
-	}
-	
-	return copy_argv_ptr;
-}
-
-/**
- * Copy argv to the process's stack.
+ * Copy argv into the user stack.
  *
  * Stack Layout:
- *     Stack Top ->
- *     Argument String Pointers.
- *     Argument Strings.
+ *   Argument1 Pointer   <- Stack Top
+ *   Argument2 Pointer
+ *   ...
+ *   ArgumentN Pointer   <- Argv Pointer
+ *
+ *   Argument String1
+ *   Argument String2
+ *   ...
+ *   Argument StringN    <- esp
  */
-static void copy_argv_into_stack(struct task_struct *proc, struct vm *vm,
+static bool copy_argv_into_stack(struct task_struct *proc, struct vm *vm,
 								 char **argv) {
-	int argc = 0;
-	char **argv_ptr = (char **) TOP_USER_STACK;
-	char *arg_ptr;
+	int argc = 0;	
 	for (char **p = argv; *p != NULL; p++, argc++)
-		/* Nothing to do */;
+		/* Nothing */;
 	
-	argv_ptr -= argc;
-	arg_ptr = (char *) argv_ptr;
+	char **argv_ptr = (char **) TOP_USER_STACK - argc;
+	char *argstr_ptr = (char *) argv_ptr;
 	
 	for (int i = 0; i < argc; i ++) {
 		uint32_t len = strlen(argv[i]) + 1;
-		arg_ptr -= len;
-		memcpy(arg_ptr, argv[i], len);
-		argv_ptr[i] = arg_ptr;
+		argstr_ptr -= len;
+		if (!vm_copyout(vm, argstr_ptr, argv[i], len)) {
+			return false;
+		}
+		if (!vm_copyout(vm, &argv_ptr[i], &argstr_ptr, sizeof(char **))) {
+			return false;
+		}
 	}
 	
-	// Setup arguments of the 'main'.
+	// Setup arguments of the 'main' function.
+	// EBX is argc and ECX is argv. the "lib/_start.asm" will push
+	// these register and then call "main". 
 	proc->tf->ebx = argc;
 	proc->tf->ecx = (uint32_t) argv_ptr;
-	proc->tf->user_esp = (void *) arg_ptr; // Over argv.
+	proc->tf->user_esp = (void *) argstr_ptr; // Over argument strings.
+	return true;
 }
 
 int proc_execv(char *path, char **argv) {
-	struct inode *ip;
 	struct elfhdr eh;
-	char argv_copy_buf[2048] = {0};
-	char **argv_copy = NULL;
 	struct task_struct *proc = get_current_task();
 	struct disk_partition *part = get_current_part();
+	struct inode *ip = NULL;
 	struct vm *new_vm = NULL, *older_vm = proc->vm;
+	
+	if ((new_vm = vm_new()) == NULL) {
+		return -1;
+	}
 
 	log_begin_op(part->log);
-	ip = path_lookup(part, path);
-	if (ip == NULL) {
+	if ((ip = path_lookup(part, path)) == NULL) {
 		goto bad;
 	}
 	inode_lock(ip);
@@ -141,31 +127,30 @@ int proc_execv(char *path, char **argv) {
 	if (!verify_elfhdr(&eh)) {
 		goto bad;
 	}
-	
-	if ((new_vm = vm_new()) == NULL) {
-		goto bad;
-	}
-
-	argv_copy = copy_argv(argv_copy_buf, argv);
-		
-	// Switch to the new vm.
-	proc->vm = new_vm;
-	vm_switchvm(older_vm, new_vm);
-	if (!load_prohdrs(new_vm, &eh, ip)) {
+	// Load user program into the new memory.
+	if (!load_proghdrs(new_vm, &eh, ip)) {
 		goto bad;
 	}
 	inode_unlockput(ip);
 	log_end_op(part->log);
-	
-	// Setup user stack space.
+		
+	// We set up the user stack space for the new process,
 	if (!vm_valloc(new_vm, BOTTOM_USER_STACK, NPAGES_USER_STACK)) {
-		goto bad;
+		vm_free(new_vm);
+		return -1;
+	}
+	// And copy the arguments(strings) into the stack.
+	if (!copy_argv_into_stack(proc, new_vm, argv)) {
+		vm_free(new_vm);
+		return -1;
 	}
 	
-	copy_argv_into_stack(proc, new_vm, argv_copy);
-	strcpy(proc->name, argv_copy[0]);	
-	proc->tf->eip = (void *) eh.e_entry;
+	strcpy(proc->name, argv[0]);
+	proc->vm = new_vm;
+	vm_switchvm(older_vm, new_vm);
 	vm_free(older_vm);
+	// Next return-from-trap will return to the entry.
+	proc->tf->eip = (void *) eh.e_entry;
 	return 0;
 	
 bad:
@@ -173,10 +158,6 @@ bad:
 		inode_unlockput(ip);
 	}
 	if (new_vm != NULL) {
-		if (proc->vm != older_vm) {
-			proc->vm = older_vm;
-			vm_switchvm(new_vm, older_vm);
-		}
 		vm_free(new_vm);
 	}
 	log_end_op(part->log);
