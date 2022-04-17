@@ -10,7 +10,7 @@ SH_OBJS := $(patsubst %.c, objs/%.o, $(SH_SRC))
 all: objs $(SH_SRC) sh
 
 clean:
-	$(RM) ./objs
+	$(RM) ./objs sh
 
 objs:
 	@if [ ! -d $@ ];\
