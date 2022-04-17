@@ -112,7 +112,7 @@ bool vm_copyout(struct vm *restrict vm, void *restrict dst, void *restrict src,
 			spinlock_release(&vm->lock, &int_save);
 			return false;
 		}
-		memcpy(page, src, per_sz);
+		memcpy(page + ((uint32_t) dst % PG_SIZE), src, per_sz);
 	}
 	spinlock_release(&vm->lock, &int_save);
 	return true;
