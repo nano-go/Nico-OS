@@ -28,7 +28,7 @@ extern "C" {
 static pid_t next_pid = 0;
 
 struct task_struct task_table[NTASK];
-struct spinlock tblock; // task table lock.
+struct spinlock tblock;
 
 struct list ready_queue;
 
@@ -138,12 +138,7 @@ struct task_struct *kthread_create(thread_fn fn, void *data, uint32_t priority,
 }
 
 struct task_struct *get_current_task() {
-	struct task_struct *curt;
-	bool int_save;
-	INT_LOCK(int_save);
-	curt = current_task;
-	INT_UNLOCK(int_save);
-	return curt;
+	return current_task;
 }
 
 void task_free(struct task_struct *task) {
