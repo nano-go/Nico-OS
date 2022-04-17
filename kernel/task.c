@@ -68,25 +68,22 @@ static void thread_entry(thread_fn entry_fn, void *data) {
 	PANIC("exit");
 }
 
-static bool init_task_stack(struct task_struct *task, thread_fn fn,
+static bool init_task_stack(struct task_struct *task, thread_fn entry_fn,
 							void *data) {
 	struct entry_stack_frame {
 		struct context context;
 
-		// The stack frame of the function "thread_entry"(above)
+		// The stack frame of the function "thread_entry"(above).
 
-		uint unused_eip; // ret addr. fake PC.
-		thread_fn func;  // The first argument of "thread_entry".
-		void *data_ptr;  // The second argument of "thread_entry".
-	};
-	struct entry_stack_frame *stack;
+		uint unused_eip;    // ret addr. fake PC.
+		thread_fn entry_fn; // The first argument of "thread_entry".
+		void *data;         // The second argument of "thread_entry".
+	} * stack;
 	uint32_t esp;
 
-	task->kstack_ptr = get_free_page();
-	if (task->kstack_ptr == NULL) {
+	if ((task->kstack_ptr = get_free_page()) == NULL) {
 		return false;
 	}
-
 	esp = (uint32_t) task->kstack_ptr + NPAGE_KSTACK * PG_SIZE;
 
 	// Leave room from trap frame.
@@ -100,8 +97,8 @@ static bool init_task_stack(struct task_struct *task, thread_fn fn,
 	task->context->eip = (uint32_t) thread_entry;
 
 	stack = (struct entry_stack_frame *) esp;
-	stack->func = fn;
-	stack->data_ptr = data;
+	stack->entry_fn = entry_fn;
+	stack->data = data;
 
 	return true;
 }
@@ -148,6 +145,8 @@ void task_free(struct task_struct *task) {
 	}
 
 	ASSERT(!list_find(&ready_queue, &task->ready_queue_node));
+	ASSERT(task->state != TASK_UNUSED);
+	
 	if (task->state != TASK_ZOMBIE && task->state != TASK_ALLOCATED) {
 		PANIC("you can not free a running task");
 	}
@@ -246,7 +245,7 @@ void task_exit(int status) {
 	task->exit_status = status;
 	spinlock_release(&tblock, &int_save);
 
-	INT_LOCK(int_save); // make interrupt off.
+	intr_disable();
 	schedule();
 	PANIC("exit");
 }
@@ -277,13 +276,10 @@ pid_t task_wait(int *status) {
 			spinlock_release(&tblock, &int_save);
 			return -1;
 		}
-
-		spinlock_release(&tblock, &int_save);
-
-		INT_LOCK(int_save);
+		
 		cur->state = TASK_WAITING;
 		schedule();
-		INT_UNLOCK(int_save);
+		spinlock_release(&tblock, &int_save);
 	}
 }
 
@@ -300,6 +296,7 @@ int task_kill(pid_t pid) {
 			return 0;
 		}
 	}
+	spinlock_release(&tblock, &int_save);
 	return -1;
 }
 
@@ -313,7 +310,7 @@ static void setup_idle_task() {
 	idle_task = kthread_create(idle_loop, NULL, 10, "idle");
 	idle_task->parent = NULL;
 	// Don't start idle task. When there are no ready tasks, the idle task will
-	// be woken up by scheduler.
+	// be woken up by the scheduler.
 }
 
 static void setup_main_task(const char *namefmt, ...) {
