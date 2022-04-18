@@ -37,12 +37,6 @@ extern "C" {
 extern struct task_struct *init_proc;
 
 /**
- * Create a new user process and return it.
- * You can call "task_wakeup" to run it.
- */
-struct task_struct *proc_create(void (*entry_fn)(void), const char *name);
-
-/**
  * Copy a new process from the current task. 
  * Sets up stack to return as if from system call.
  * The current task must be a user process.
