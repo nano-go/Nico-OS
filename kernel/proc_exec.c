@@ -2,13 +2,13 @@
  * The implementation of "proc_execv(path, argv)".
  */
 
-#include "kernel/proc.h"
-#include "kernel/memory.h"
+#include "fs/log.h"
+#include "fs/pathname.h"
 #include "kernel/elf.h"
+#include "kernel/memory.h"
+#include "kernel/proc.h"
 #include "kernel/trap.h"
 #include "kernel/x86.h"
-#include "fs/pathname.h"
-#include "fs/log.h"
 
 #include "string.h"
 
@@ -35,7 +35,8 @@ static bool verify_proghdr(struct proghdr *ph) {
 	return svaddr >= USER_PROG_BASE && evaddr <= USER_PROG_TOP;
 }
 
-static bool load_proghdrs(struct vm *vm, struct elfhdr *elfhdr, struct inode*ip) {
+static bool load_proghdrs(struct vm *vm, struct elfhdr *elfhdr,
+						  struct inode *ip) {
 	uint32_t off, i;
 	struct proghdr ph;
 	for (i = 0, off = elfhdr->e_phoff; i < elfhdr->e_phnum;
@@ -52,7 +53,7 @@ static bool load_proghdrs(struct vm *vm, struct elfhdr *elfhdr, struct inode*ip)
 		if (!vm_valloc(vm, ph.p_vaddr, ROUND_UP(ph.p_memsz, PG_SIZE))) {
 			return false;
 		}
-		if (!vm_load(vm,  (void *) ph.p_vaddr, ip, ph.p_offset, ph.p_filesz)) {
+		if (!vm_load(vm, (void *) ph.p_vaddr, ip, ph.p_offset, ph.p_filesz)) {
 			return false;
 		}
 	}
@@ -75,14 +76,13 @@ static bool load_proghdrs(struct vm *vm, struct elfhdr *elfhdr, struct inode*ip)
  */
 static bool copy_argv_into_stack(struct task_struct *proc, struct vm *vm,
 								 char **argv) {
-	int argc = 0;	
-	for (char **p = argv; *p != NULL; p++, argc++)
-		/* Nothing */;
-	
+	int argc = 0;
+	for (char **p = argv; *p != NULL; p++, argc++) /* Nothing */;
+
 	char **argv_ptr = (char **) TOP_USER_STACK - argc;
 	char *argstr_ptr = (char *) argv_ptr;
-	
-	for (int i = 0; i < argc; i ++) {
+
+	for (int i = 0; i < argc; i++) {
 		uint32_t len = strlen(argv[i]) + 1;
 		argstr_ptr -= len;
 		if (!vm_copyout(vm, argstr_ptr, argv[i], len)) {
@@ -92,13 +92,29 @@ static bool copy_argv_into_stack(struct task_struct *proc, struct vm *vm,
 			return false;
 		}
 	}
-	
+
 	// Setup arguments of the 'main' function.
 	// EBX is argc and ECX is argv. the "lib/_start.asm" will push
-	// these register and then call "main". 
+	// these register and then call "main".
 	proc->tf->ebx = argc;
 	proc->tf->ecx = (uint32_t) argv_ptr;
 	proc->tf->user_esp = (void *) argstr_ptr; // Over argument strings.
+	return true;
+}
+
+/**
+ * Set up the user stack for the given user vmemory.
+ */
+static bool setup_ustack(struct vm *vm) {
+	// We allocate user stack space,
+	if (!vm_valloc(vm, BOTTOM_USER_STACK, NPAGES_USER_STACK)) {
+		return false;
+	}
+	// And clear the user stack,
+	if (!vm_setrange(vm, (void *) BOTTOM_USER_STACK, 0,
+					 NPAGES_USER_STACK * PG_SIZE)) {
+		return false;
+	}
 	return true;
 }
 
@@ -108,7 +124,7 @@ int proc_execv(char *path, char **argv) {
 	struct disk_partition *part = get_current_part();
 	struct inode *ip = NULL;
 	struct vm *new_vm = NULL, *older_vm = proc->vm;
-	
+
 	if ((new_vm = vm_new()) == NULL) {
 		return -1;
 	}
@@ -127,24 +143,22 @@ int proc_execv(char *path, char **argv) {
 	if (!verify_elfhdr(&eh)) {
 		goto bad;
 	}
-	// Load user program into the new memory.
+	// Load user program into the new vmemory.
 	if (!load_proghdrs(new_vm, &eh, ip)) {
 		goto bad;
 	}
 	inode_unlockput(ip);
 	log_end_op(part->log);
-		
-	// We set up the user stack space for the new process,
-	if (!vm_valloc(new_vm, BOTTOM_USER_STACK, NPAGES_USER_STACK)) {
+
+	if (!setup_ustack(new_vm)) {
 		vm_free(new_vm);
 		return -1;
 	}
-	// And copy the arguments(strings) into the stack.
+	// Copy the arguments(strings) into the user stack.
 	if (!copy_argv_into_stack(proc, new_vm, argv)) {
 		vm_free(new_vm);
 		return -1;
 	}
-	
 	strcpy(proc->name, argv[0]);
 	proc->vm = new_vm;
 	vm_switchvm(older_vm, new_vm);
@@ -152,7 +166,7 @@ int proc_execv(char *path, char **argv) {
 	// Next return-from-trap will return to the entry.
 	proc->tf->eip = (void *) eh.e_entry;
 	return 0;
-	
+
 bad:
 	if (ip != NULL) {
 		inode_unlockput(ip);

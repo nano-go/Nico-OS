@@ -64,6 +64,13 @@ bool pgdir_valloc(pgdir_t pgdir, uint32_t vaddr, uint32_t pg_cnt,
  */
 pgdir_t pgdir_copy(pgdir_t pgdir);
 
+/**
+ * Copy the byte @val to the first @n bytes of the pointer @vstart.
+ *
+ * Return false if some associated pages are not present, otherwise return true.
+ */
+bool pgdir_setrange(pgdir_t pgdir, void *vstart, char val, uint32_t n);
+
 void pmem_init();
 void pgtab_init();
 void kvm_init();

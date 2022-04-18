@@ -52,7 +52,7 @@ typedef uint32_t pte_t;
 typedef pde_t *pgdir_t;
 
 /**
- * Virtual memory manager struct.
+ * Virtual memory management struct.
  */
 struct vm;
 
@@ -104,6 +104,13 @@ bool vm_copyout(struct vm *restrict vm, void *restrict dst, void *restrict src,
 				uint32_t sz);
 
 /**
+ * Copy the byte @val to the first @n bytes of the pointer @vstart.
+ *
+ * @see kernel/mem/pgtab.c#pgdir_setrange
+ */
+bool vm_setrange(struct vm *vm, void *dst, char val, uint32_t n);
+
+/**
  * Switch the virtual memory space(actually switch page table).
  */
 void vm_switchvm(struct vm *prev, struct vm *next);
@@ -113,7 +120,6 @@ void vm_switchvm(struct vm *prev, struct vm *next);
  * top of the heap before the growth or NULL if grow failed.
  */
 void *vm_grow_userheap(struct vm *vm, int32_t bytes_cnt);
-
 
 void *get_free_page();
 void free_page(void *page);

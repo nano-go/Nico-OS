@@ -219,6 +219,24 @@ bad:
 	return NULL;
 }
 
+bool pgdir_setrange(pgdir_t pgdir, void *vstart, char val, uint32_t n) {
+	uint32_t per, offset;
+	void *vp = vstart;
+	for (uint32_t done = 0; done < n; done += per, vp += per) {
+		void *rp = page_frame_ptr(pgdir, vp);
+		if (rp == NULL) {
+			return false;
+		}
+		offset = (uint32_t) rp % PG_SIZE;
+		per = PG_SIZE - offset;
+		if (per > n - done) {
+			per = n - done;
+		}
+		memset(rp + offset, val, per);
+	}
+	return true;
+}
+
 void pgtab_init() {
 	spinlock_init(&pgtab_lock);
 	

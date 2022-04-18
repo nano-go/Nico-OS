@@ -118,6 +118,14 @@ bool vm_copyout(struct vm *restrict vm, void *restrict dst, void *restrict src,
 	return true;
 }
 
+bool vm_setrange(struct vm *vm, void *dst, char val, uint32_t n) {
+	bool int_save, r;
+	spinlock_acquire(&vm->lock, &int_save);
+	r = pgdir_setrange(vm->pgdir, dst, val, n);
+	spinlock_release(&vm->lock, &int_save);
+	return r;
+}
+
 void *vm_grow_userheap(struct vm *vm, int32_t bytes_cnt) {
 	ASSERT(vm->brk != NULL);
 	if (bytes_cnt < 0) {
