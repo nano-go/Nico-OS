@@ -1,10 +1,6 @@
 # how much memory the emulated machine will have
 megs: 64
 
-# filename of ROM images
-romimage: file=$USER_PATH/share/bochs/BIOS-bochs-latest
-vgaromimage: file=$USER_PATH/share/bochs/VGABIOS-lgpl-latest
-
 # choose log file
 log: bochsout.txt
 
