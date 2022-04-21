@@ -8,7 +8,6 @@ A mini os kernel.
 4. File System(xv6)
 5. System Call
 6. Console
-7. Shell
 
 ## References
 [1] [xv6-public](https://github.com/mit-pdos/xv6-public)  
