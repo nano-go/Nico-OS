@@ -24,7 +24,7 @@ static struct cmd *parse_cmd(struct sh_executor *sh);
 static struct cmd *parse_list(struct sh_executor *sh);
 static struct cmd *parse_binary(struct sh_executor *sh);
 static struct cmd *parse_redir(struct sh_executor *sh);
-static struct cmd *parse_term(struct sh_executor *sh);
+static struct cmd *parse_primary(struct sh_executor *sh);
 static struct cmd *parse_execcmd(struct sh_executor *sh);
 static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left,
 								  enum token_type tok);
@@ -146,10 +146,10 @@ static struct cmd *parse_binary(struct sh_executor *sh) {
 }
 
 /**
- * Redir := Term ( ( ">>" | ">" | "<" ) Redircmd )*
+ * Redir := Primary ( ( ">>" | ">" | "<" ) Redircmd )*
  */
 static struct cmd *parse_redir(struct sh_executor *sh) {
-	struct cmd *cmd = parse_term(sh);
+	struct cmd *cmd = parse_primary(sh);
 	if (cmd == NULL) {
 		return NULL;
 	}
@@ -173,9 +173,9 @@ static struct cmd *parse_redir(struct sh_executor *sh) {
 
 
 /**
- * Term := ( "(" Cmd ")" ) | Execcmd
+ * Primary := ( "(" Cmd ")" ) | Execcmd
  */
-static struct cmd *parse_term(struct sh_executor *sh) {
+static struct cmd *parse_primary(struct sh_executor *sh) {
 	struct cmd *cmd = NULL;
 	switch (peek(sh)) {
 		case TOKEN_LPAREN:
