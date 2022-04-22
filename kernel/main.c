@@ -1,3 +1,4 @@
+#include "kernel/buf.h"
 #include "kernel/console.h"
 #include "kernel/debug.h"
 #include "kernel/dpartition.h"

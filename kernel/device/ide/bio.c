@@ -1,3 +1,4 @@
+#include "kernel/buf.h"
 #include "kernel/ide.h"
 #include "kernel/spinlock.h"
 
@@ -14,7 +15,6 @@ extern "C" {
 struct {
 	struct spinlock lock;
 	struct buf bufs[NBUF];
-
 	struct buf head;
 } bcache;
 

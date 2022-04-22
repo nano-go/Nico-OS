@@ -4,6 +4,7 @@
 #include "fs/inodes.h"
 #include "fs/log.h"
 #include "fs/pathname.h"
+#include "kernel/buf.h"
 #include "kernel/debug.h"
 #include "kernel/memory.h"
 #include "string.h"

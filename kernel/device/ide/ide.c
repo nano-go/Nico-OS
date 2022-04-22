@@ -1,3 +1,4 @@
+#include "kernel/buf.h"
 #include "kernel/ide.h"
 #include "kernel/iopic.h"
 #include "kernel/trap.h"

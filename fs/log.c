@@ -1,5 +1,6 @@
 #include "fs/log.h"
 #include "fs/superblock.h"
+#include "kernel/buf.h"
 
 #include "stdbool.h"
 #include "string.h"

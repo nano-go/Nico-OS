@@ -1,6 +1,7 @@
 #include "fs/fs.h"
 #include "fs/inodes.h"
 #include "fs/log.h"
+#include "kernel/buf.h"
 #include "kernel/debug.h"
 #include "string.h"
 
