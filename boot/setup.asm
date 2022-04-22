@@ -7,12 +7,12 @@ section code align=16 vstart=SETUP_ADDRESS
 	mov ds, ax
 	mov es, ax
 
-;========== Set Display Mode.
+;========== Set Display Mode
 	; 80*25 16 bits color text mode.
 	mov ax, 0x0003
 	int 0x10
 
-;========== Print SetupStart Message.
+;========== Print SetupStart Message
 	mov ax, 0x1301
 	mov bx, 0x000f
 	mov dx, 0x0200
@@ -20,18 +20,18 @@ section code align=16 vstart=SETUP_ADDRESS
 	mov bp, StartSetupMsg
 	int 0x10
 
-;========== Enter Protection Mode
+;========== Protection Mode
 	call detect_memory
-	call define_gdt
+	call load_gdt
 
-	; Open A20 addr wire.
+	; Enable A20 addr wire.
 	in al, 0x92
 	or al, 0000_0010B
 	out 0x92, al
 
 	cli
 
-	; Open protection mode.
+	; Enable protection mode.
 	mov eax, cr0
 	or eax, 1
 	mov cr0, eax
@@ -52,10 +52,9 @@ pmode_start:
 	mov gs, ax
 
 
-;========== Create Page Table.
+;========== Set up pages.
 	call setup_page
 
-	; Open page table.
 	mov eax, PAGE_TABLE_BASE_ADDR
 	mov cr3, eax
 	mov eax, cr0
@@ -73,26 +72,33 @@ pmode_start:
 		add ebx, 512
 		loop .load_head_loop
 
-;========== Goto the kernel
+;========== Jump to the kernel entry.
 	mov esp, SYS_STACK_POINTER + KERNEL_BASE
 	jmp SYS_CODE_SELECTOR:KERNEL_ADDRESS
+
+
+
+
+
+
+
 
 
 [bits 32]
 %include "disk_read.asm"
 
-;=============================================================
+;================================================================
 ; Function
 ;     detect_memory
+;
 ; Description
-;     Detect the memory and get the total size of the memory.
-;=============================================================
+;     Detect the memory and get the total amount of the memory.
+;================================================================
 [bits 16]
 detect_memory:
 	; @1: Try to use 0x15(eax=0xe820) interrupt to detect the memory.
 	xor ebx, ebx
-	; The String "SMAP"
-	mov edx, 0x534d4150
+	mov edx, 0x534d4150        ; "SMAP"
 	mov di, ARDS_BUF
 
 	.detect_memory_loop1:
@@ -151,14 +157,11 @@ detect_memory_0x15_0xe801:
 	; Save the result to ESI
 	mov esi, eax
 
-	; Calculate > --> 16MB
-	; Convert 64KB into Bytes
+	; 64KB -> Bytes
 	xor eax, eax
 	mov ax, bx
 	mov ecx, 1024*64
 	mul ecx
-
-	; We need only low 64 bits.
 
 	; Use EAX resgiter to store the maximum memory.
 	add eax, esi
@@ -170,19 +173,16 @@ detect_memory_0x15_0x88:
 	jc error_hlt
 
 
-	; Convert KB into Bytes.
+	; KB -> Bytes.
 	; dx:ax *= 1024
 	mov cx, 1024*1
 	mul cx
 
-	; Clear high 16 bits. We need only low 16 bits.
 	and eax, 0x0000FFFF
 	shl edx, 16
 	or eax, edx
 
-	; EAX += 1MB
 	add eax, 1024*1024*1
-
 	jmp memget_ok
 
 error_hlt:
@@ -195,12 +195,13 @@ memget_ok:
 
 ;=============================================================
 ; Function
-;     define_gdt
+;     load_gdt
+;
 ; Description
-;     Define the global description table.
+;     Load the global description table.
 ;=============================================================
 [bits 16]
-define_gdt:
+load_gdt:
 	mov bx, GDT_BASE
 	
 	mov dword [ds:bx], 0x00000000
@@ -243,8 +244,10 @@ define_gdt:
 ;=============================================================
 ; Function
 ;     write_descriptor
+;
 ; Description
-;     Write a global descriptor to GDT.
+;     Write a descriptor to GDT.
+;
 ; Params
 ;     ESI     - segment base addr.
 ;     ECX     - segment bound.
@@ -254,7 +257,7 @@ define_gdt:
 [bits 16]
 write_descriptor:
 
-	; Move Segment Bound(0-15) to EAX(0-15)
+	; Move Segment Limit(0-15) to EAX(0-15)
 	mov eax, ecx
 	and eax, 0x0000FFFF
 
@@ -272,7 +275,7 @@ write_descriptor:
 	and eax, 0x00FF0000
 	shr eax, 16
 	
-	; Move Segment Bound(16-19) to EAX(16-19)
+	; Move Segment Limit(16-19) to EAX(16-19)
 	mov edi, ecx
 	and edi, 0x000F0000
 	or eax, edi
@@ -290,14 +293,17 @@ write_descriptor:
 ;=============================================================
 ; Function
 ;     setup_page
+;
 ; Description
-;     Setup the virtual page table.
-;     Map the low 4MB physical memory to the 0x80000000 virtual memory.
+;     Setup the page directory table(V->P):
+;       0x00000000-0x00040000 -> 0x00000000-0x00040000 (4MB, Temp)
+;       0x08000000-0x08040000 -> 0x00000000-0x00040000 (4MB)
+;
 ; Memory Layout
-;     Description     Address (Low -> High)      Memory Space
+;     Name            Address                    Memory Space
 ;     -------------------------------------------------------
 ;     PDT             PAGE_TABLE_BASE_ADDR         4 KB
-;     Page Table 1    PAGE_TABLE_BASE_ADDR + 4K    4 KB  
+;     Page Table1     PAGE_TABLE_BASE_ADDR + 4K    4 KB  
 ;================ ============================================
 [bits 32]
 setup_page:
@@ -305,29 +311,25 @@ setup_page:
 	mov esi, 0
 	mov ecx, 1024
 
-	.clear_first_pde:
+	.clear_pgdir:
 		mov dword [ds:PAGE_TABLE_BASE_ADDR+esi], 0
 		add esi, 4
-		loop .clear_first_pde
+		loop .clear_pgdir
 
-	; EAX is the pde that points to the first page table.
+	; PDE is a pointer to the first page table.
 	mov eax, (PAGE_TABLE_BASE_ADDR + 4096) | PG_RW_RW | PG_PRESENT | PG_US_SUPER
 
-	; Map the low 0-1MB virtual address to the low 0-1MB 
-	; physical address.
 	mov [ds:PAGE_TABLE_BASE_ADDR], eax
-	; Map the 0xc0000000+1MB virtual address to the low 0-1MB
-	; physicsl address.
 	mov [ds:PAGE_TABLE_BASE_ADDR+0x800], eax
 
 	mov ecx, 1024
 	mov ebx, PAGE_TABLE_BASE_ADDR + 4096
 	mov esi, PG_RW_RW | PG_PRESENT | PG_US_SUPER
-	.create_a_pte:
+	.create_pgtab:
 		mov [ds:ebx], esi
 		add esi, 4096
 		add ebx, 4
-		loop .create_a_pte
+		loop .create_pgtab
 
 	ret
 	
@@ -342,8 +344,6 @@ section data align=16 vstart=0
 	StartSetupMsg db "Setup Start..."
 	StartSetupMsg_Length equ ($-StartSetupMsg)
 
-	; This is a buffer that is used to store the 
-	; ARDS(Address Range Descriptor Structure) array that it
-	; descripts attributes of the memory.
+	; Address Range Descriptor Structure array.
 	ARDS_BUF times 512 db 0x00
 	ARDS_COUNT dw 0x00
