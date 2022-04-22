@@ -1,10 +1,10 @@
 #ifndef _KERNEL_LIST_H
 #define _KERNEL_LIST_H
 
-#include "stdbool.h"
-#include "stdint.h"
-#include "stddef.h"
 #include "kernel/debug.h"
+#include "stdbool.h"
+#include "stddef.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -17,16 +17,16 @@ extern "C" {
  * This converts a "struct list_node*" ptr into the specified type ptr.
  *
  * Usage:
- *    struct some_s { 
- *        ...; 
- *	    struct list_node *node_member; 
+ *    struct some_s {
+ *        ...;
+ *	    struct list_node *node_member;
  *	    ...;
  *	};
- *    struct some_s *element = 
+ *    struct some_s *element =
  *	    NODE_AS(struct some_s, list_poll(list), node_member);
  */
 #define NODE_AS(type, node_ptr, member)                                        \
-	(type *) ((uint8_t *) (node_ptr) - offsetof(type, member))
+	(type *) ((uint8_t *) (node_ptr) -offsetof(type, member))
 
 #define LIST_FIRST(list) ((list)->head.next)
 #define LIST_LAST(list) ((list)->tail.prev)
@@ -34,7 +34,7 @@ extern "C" {
 #define LIST_FOREACH(item, list, type, member)                                 \
 	for (item = NODE_AS(type, (list)->head.next, member);                      \
 		 &item->member != &((list)->tail);                                     \
-		 item = NODE_AS(type, item->member.next, member))                      \
+		 item = NODE_AS(type, item->member.next, member))
 
 struct list_node {
 	struct list_node *prev;
@@ -51,15 +51,16 @@ static inline void list_init(struct list *l) {
 	l->tail.prev = &l->head;
 }
 
-static void list_linked_before(struct list_node *n,
-							   struct list_node *new_node) {
+static inline void list_linked_before(struct list_node *n,
+									  struct list_node *new_node) {
 	new_node->next = n;
 	new_node->prev = n->prev;
 	n->prev->next = new_node;
 	n->prev = new_node;
 }
 
-static void list_linked_after(struct list_node *n, struct list_node *new_node) {
+static inline void list_linked_after(struct list_node *n,
+									 struct list_node *new_node) {
 	new_node->prev = n;
 	new_node->next = n->next;
 	n->next->prev = new_node;
@@ -131,7 +132,7 @@ static inline struct list_node *list_get(struct list *l, uint32_t idx) {
 	ASSERT(idx < list_size(l));
 	struct list_node *n = l->head.next;
 	const struct list_node *end = &l->tail;
-	for (uint32_t i = 0; i != idx && n != end; i++, n = n->next)
+	for (uint32_t i = 0; i != idx && n != end; i++, n = n->next) 
 		/* Nothing */;
 	if (n == end) {
 		return NULL;
