@@ -13,11 +13,11 @@ extern "C" {
 #endif /* __cplusplus */
 
 #define TASK_NAME_LENGTH 32  // Maximum length of task's name.
-#define NTASK            128 // Maximum number of tasks.
+#define NTASK            128 // Maximum number of all tasks.
 #define NOFILE           16  // Maximum number of open files per process.
-#define NPAGE_KSTACK     1   // Page number of the kernel stack.
+#define NPAGE_KSTACK     1   // Page number of a kernel stack.
 
-// Top kernel stack pointer for task.
+// Top kernel stack pointer for the task.
 #define TASK_KSTACK_PTR(task)                                                  \
 	((uint32_t)(task)->kstack_ptr + NPAGE_KSTACK * PG_SIZE)
 
@@ -27,13 +27,13 @@ extern "C" {
 #define KILLED_TASK_EXITSTATUS 100
 
 enum task_status {
-	TASK_UNUSED,       // Task in the task table, to be allocted.
-	TASK_ALLOCATED,    // Task is allocated but not yet run.
-	TASK_READY,        // Task is in the ready queue waiting to be scheduled..
-	TASK_RUNNING,      // Task is running on the CPU.
-	TASK_BLOCKED,      // Task is blocked waiting to be wokenup.
-	TASK_WAITING,      // Task is blocked waiting a child task to exit.
-	TASK_ZOMBIE,       // Task exited waiting for the parent to free it(call wait).
+	TASK_UNUSED,       // Placed into the task table, to be allocated.
+	TASK_ALLOCATED,    // Allocated but not yet run.
+	TASK_READY,        // Placed into a ready qeueu waiting for its turn to execute.
+	TASK_RUNNING,      // Running on the CPU.
+	TASK_BLOCKED,      // Blocked, waiting for signals.
+	TASK_WAITING,      // Blocked(cause task_wait), waiting for a child task exiting.
+	TASK_ZOMBIE,       // Exited, waiting for a task to free it(call task_wait).
 };
 
 typedef void (*thread_fn)(void *data);
@@ -56,13 +56,8 @@ struct task_struct {
 	enum task_status state;
 	uint32_t time_slice;
 	uint32_t priority;
-		
-	/**
-	 * Trap frame for current syscall.
-	 * User process use the trap frame to switch ring0 -> ring3.
-	 */
-	struct trap_frame *tf;
 	
+	struct trap_frame *tf;       // Trap frame for current syscall.
 	struct context *context;     // Switch here to run.
 	void *kstack_ptr;            // Bottom of kernel stack for this task.
 	struct vm *vm;               // Isolated virtual memory space.
@@ -88,7 +83,7 @@ struct task_struct *get_current_task();
  * @param data     - The argument of the entry function.
  * @param priority - The priority determines the time slice of the task. 
  *
- * @return - The new task or NULL if fail to create the task.
+ * @return - The new task or NULL if fail to create a task.
  */
 struct task_struct *kthread_create(thread_fn fn, 
 								   void *data, 
@@ -104,7 +99,7 @@ struct task_struct *kthread_create(thread_fn fn,
  * Free the given task, including its virtual memory(if it is not a 
  * kernel thread), its kernel stack and PCB.
  *
- * Note: this don't close "open files" of the given task.
+ * Note: this doesn't close open files.
  */
 void task_free(struct task_struct *task);
 
@@ -115,12 +110,14 @@ void task_free(struct task_struct *task);
 void task_yield();
 
 /**
- * Block the current task until it is woken up by a task.
+ * Block the current task until it is woken up by a task. This will change the task's state
+ * to TASK_BLOCKED.
  */
 void task_block();
 
 /**
- * Wake up the given task.
+ * Wake up the spcified task that it must be blocked. This will change the task's state
+ * to TASK_READY.
  */
 void task_wakeup(struct task_struct *task);
 
@@ -141,8 +138,8 @@ void task_exit(int status);
  * Wait for a child task to exit and return its pid or -1 if there is no kids
  * for the current task.
  *
- * @param status - the exited task's status code will be saved to this pointer 
- *                 if it is not a NULL pointer.
+ * @param status - the exited task's status-code will be filled to the "status" pointer 
+ *                 if it is not NULL.
  *
  * @return the exited task's pid or -1 if there are no child tasks for the current task.
  */
@@ -150,7 +147,7 @@ pid_t task_wait(int *status);
 
 /**
  * Kill the task with the specified pid.
- * Task won't exit until an interruption occurs.
+ * Task won't exit until an interrupt occurs.
  */
 int task_kill(pid_t pid);
 
