@@ -1,7 +1,6 @@
 #ifndef _KERNEL_MEMORY_H
 #define _KERNEL_MEMORY_H
 
-#include "bitmap.h"
 #include "spinlock.h"
 #include "string.h"
 #include "defs.h"
