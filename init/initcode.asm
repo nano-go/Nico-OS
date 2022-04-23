@@ -1,4 +1,4 @@
-%define	SYS_execv 11
+%define SYS_execv 11
 %define SYS_exit  12
 
 [bits 32]
