@@ -1,19 +1,20 @@
 
-; Setup.S takes up 8 sectors.
+; Setup.S size(512 bytes)
 SETUP_SECTORS equ 8
-; Setup.S position in the disk.
+; Setup.S lba number.
 SETUP_LBA     equ 1
-; Setup.S will be loaded at the SETUP_ADDRESS in the memory.
+; Setup.S will be loaded into the memory(at this address).
 SETUP_ADDRESS equ 0x900
 
-; Head.S takes up 4 sectors.
-HEAD_SECTORS equ 4
-HEAD_LBA     equ 9
-HEAD_ADDRESS equ 0x1900
-
+; Kernel.bin size(512 bytes)
 KERNEL_SECTORS equ 800
+; Kernel.bin lba number.
 KERNEL_LBA     equ 9
+; kernel.bin will be loaded into the memory(at this address).
 KERNEL_ADDRESS equ 0x80030000
+
+
+
 KERNEL_BASE    equ 0x80000000
 
 SYS_CODE_SELECTOR  equ 0B001_000
