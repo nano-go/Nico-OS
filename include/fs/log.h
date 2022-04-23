@@ -3,7 +3,7 @@
 
 #include "kernel/ide.h"
 #include "kernel/semaphore.h"
-#include "kernel/typedef.h"
+#include "kernel/defs.h"
 
 /**
  * The log is the file system module that is used to make all operations

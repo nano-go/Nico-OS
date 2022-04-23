@@ -4,7 +4,7 @@
 #include "bitmap.h"
 #include "spinlock.h"
 #include "string.h"
-#include "typedef.h"
+#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus

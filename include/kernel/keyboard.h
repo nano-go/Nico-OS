@@ -1,7 +1,7 @@
 #ifndef _KERNEL_KEYBOARD_H
 #define _KERNEL_KEYBOARD_H
 
-#include "typedef.h"
+#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus

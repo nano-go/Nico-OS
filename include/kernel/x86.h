@@ -1,7 +1,7 @@
 #ifndef _KERNEL_X86_H
 #define _KERNEL_X86_H
 
-#include "typedef.h"
+#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus

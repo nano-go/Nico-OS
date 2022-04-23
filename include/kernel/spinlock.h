@@ -2,7 +2,7 @@
 #define _KERNEL_SPINLOCK_H
 
 #include "debug.h"
-#include "typedef.h"
+#include "defs.h"
 #include "x86.h"
 
 #ifdef __cplusplus

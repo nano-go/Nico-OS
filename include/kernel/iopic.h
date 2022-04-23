@@ -2,7 +2,7 @@
 #define _KERNEL_IOPIC_H
 
 #include "trap.h"
-#include "typedef.h"
+#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus

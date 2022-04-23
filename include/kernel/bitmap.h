@@ -1,7 +1,7 @@
 #ifndef _KERNEL_BITMAP_H
 #define _KERNEL_BITMAP_H
 
-#include "typedef.h"
+#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus

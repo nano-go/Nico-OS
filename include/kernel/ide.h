@@ -11,7 +11,7 @@
 #include "list.h"
 #include "semaphore.h"
 
-#include "typedef.h"
+#include "defs.h"
 
 #include "fs/superblock.h"
 

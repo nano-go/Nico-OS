@@ -3,7 +3,7 @@
 
 #include "semaphore.h"
 #include "spinlock.h"
-#include "typedef.h"
+#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus

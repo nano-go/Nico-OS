@@ -1,7 +1,7 @@
 #ifndef _KERNEL_PIPE_H
 #define _KERNEL_PIPE_H
 
-#include "typedef.h"
+#include "defs.h"
 #include "fs/file.h"
 
 #ifdef __cplusplus

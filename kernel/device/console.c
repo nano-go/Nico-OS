@@ -1,7 +1,7 @@
 #include "kernel/console.h"
 #include "kernel/semaphore.h"
 #include "kernel/keyboard.h"
-#include "kernel/typedef.h"
+#include "kernel/defs.h"
 #include "fs/file.h"
 
 #include "stdio.h"

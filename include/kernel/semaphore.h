@@ -1,7 +1,7 @@
 #ifndef _KERNEL_SEM_H
 #define _KERNEL_SEM_H
 
-#include "typedef.h"
+#include "defs.h"
 #include "spinlock.h"
 #include "list.h"
 

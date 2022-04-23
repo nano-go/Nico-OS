@@ -1,7 +1,7 @@
 #ifndef _KERNEL_DPARTITION_H
 #define _KERNEL_DPARTITION_H
 
-#include "typedef.h"
+#include "defs.h"
 #include "list.h"
 
 #ifdef __cplusplus
