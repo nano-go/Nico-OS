@@ -8,7 +8,7 @@ extern kernel_start
 section .text.entry
 global _start
 _start:
-;========== Copy setup.data to the .data section.
+;========== Copy a part of ".data section" in setup.S to ".data section" in this file.
 	cld
 	mov ax, SETUP_DATA_SELECTOR
 	mov ds, ax
@@ -25,7 +25,6 @@ _start:
 	mov fs, ax
 
 	call kernel_start
-
 	jmp $
 
 section .text
