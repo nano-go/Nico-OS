@@ -21,15 +21,6 @@ extern "C" {
 
 typedef uint32_t pg_attr_t;
 
-/**
- * The manager struct of virtual memory pool.
- */
-struct vmem_pool {
-	struct bitmap bitmap;
-	uint32_t vaddr_start;
-	struct spinlock lock;
-};
-
 // pgtab.c
 extern pgdir_t kpgdir;
 
