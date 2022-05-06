@@ -46,8 +46,8 @@ static int open_scriptfile(char *filename) {
 		printf("sh: stat: %s\n", filename);
 		exit(1);
 	}
-	if (st.st_type != T_FILE) {
-		printf("sh: cannot execute a non-file script: %s\n", filename);
+	if (st.st_type == T_DIR) {
+		printf("%s: is a directory.\n", filename);
 		exit(1);
 	}
 	return fd;
