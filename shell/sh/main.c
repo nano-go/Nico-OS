@@ -23,7 +23,7 @@ static void shloop(struct sh_executor *sh) {
 			exec_builtin_cmd(cmd);
 			continue;
 		}
-		volatile int pid = fork();
+		int pid = fork();
 		if (!pid) {
 			sh_execcmd(sh, cmd);
 		} else if (pid > 0) {
