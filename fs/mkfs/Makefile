@@ -11,7 +11,6 @@ clean:
 
 $(MKFS): $(MKFS_OBJS)
 	$(CC) -o $@ $^
-	rbin $(MKFS) || exit; # Ignore this line.
 
 %.o: %.c
 	$(CC) -O2 -MMD -MP -I ./include -Werror -Wall -std=gnu99 -c -o $@ $<
