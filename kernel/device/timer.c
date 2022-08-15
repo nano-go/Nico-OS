@@ -18,21 +18,21 @@ extern "C" {
 #define IRQ0_FREQUENCY  100
 
 
-#define PIC_COUNTER0     00
-#define PIC_COUNTER1     01
-#define PIC_COUNTER2     10
+#define PIC_COUNTER0     0b00
+#define PIC_COUNTER1     0b01
+#define PIC_COUNTER2     0b10
 
-#define PIC_RW_LATCH       00
-#define PIC_RW_LOW         01
-#define PIC_RW_HIGH        10
-#define PIC_RW_LOW_HIGH    10
+#define PIC_RW_LATCH       0b00
+#define PIC_RW_LOW         0b01
+#define PIC_RW_HIGH        0b10
+#define PIC_RW_LOW_HIGH    0b10
 
-#define PIC_METHOD_M0   000
-#define PIC_METHOD_M1   001
-#define PIC_METHOD_M2   010
-#define PIC_METHOD_M3   011
-#define PIC_METHOD_M4   100
-#define PIC_METHOD_M5   101
+#define PIC_METHOD_M0   0b000
+#define PIC_METHOD_M1   0b001
+#define PIC_METHOD_M2   0b010
+#define PIC_METHOD_M3   0b011
+#define PIC_METHOD_M4   0b100
+#define PIC_METHOD_M5   0b101
 
 #define PIC_BCD_BINARY 0
 #define PIC_BCD_BCD    1
