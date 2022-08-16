@@ -11,11 +11,10 @@ extern "C" {
 #include "stdint.h"
 
 #ifndef NDEBUG
-void print_superblock(struct superblock *sb, struct disk_partition *part,
-					  bool details);
+void print_superblock(struct disk *disk, struct superblock *sb, bool details);
 #else
-# define print_superblock(sb, part, details) ((void *) 0)
-#endif /* NDEBUG */
+# define print_superblock(disk, sb, details) ((void *) 0)
+#endif /* ndebug */
 
 #ifdef __cplusplus
 #if __cplusplus

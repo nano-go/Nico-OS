@@ -1,5 +1,5 @@
 #define NDIRECT_DATA_BLOCKS 11
-#define NFILES_PER_PART (4096 * 4) // Number of files per partition.
+#define NFILES_PER_DISK (4096 * 4) // Number of files per disk.
 
 #define MAX_OPEN_BLOCKS 10
 #define LOG_SIZE (MAX_OPEN_BLOCKS * 3)

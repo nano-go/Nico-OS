@@ -59,13 +59,13 @@ void path_parent(char *path, char *parent, char *name) {
 }
 
 
-static struct inode *path_lookup0(struct disk_partition *part, char *path,
+static struct inode *path_lookup0(struct disk *disk, char *path,
 								  bool nameiparent, char *name) {
 	struct inode *parent;
 	struct inode *next;
 	
 	if (*path == '/') {
-		parent = iget(part, ROOT_INUM);
+		parent = iget(disk, ROOT_INUM);
 		path++;
 	} else {
 		parent = inode_dup(get_current_task()->cwd);
@@ -105,14 +105,13 @@ static struct inode *path_lookup0(struct disk_partition *part, char *path,
 	return parent;
 }
 
-struct inode *path_lookup(struct disk_partition *part, char *path) {	
+struct inode *path_lookup(struct disk *disk, char *path) {	
 	char name[DIRENT_NAME_LENGTH];
-	return path_lookup0(part, path, false, name);
+	return path_lookup0(disk, path, false, name);
 }
 
-struct inode *path_lookup_parent(struct disk_partition *part, char *pathname,
-								 char *name) {
-	return path_lookup0(part, pathname, true, name);
+struct inode *path_lookup_parent(struct disk *disk, char *pathname, char *name) {
+	return path_lookup0(disk, pathname, true, name);
 }
 
 bool path_valid_name(char *name) {

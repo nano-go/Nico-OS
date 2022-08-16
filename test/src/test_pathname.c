@@ -143,7 +143,7 @@ static void path_lookup_test() {
 		 0},
 	};
 	
-	struct log *log = get_current_part()->log;
+	struct log *log = get_current_disk()->log;
 	for (uint i = 0; i < sizeof testcases / sizeof *testcases; i++) {
 		struct path_lookup_tc *tc = &testcases[i];
 		char **input = tc->inputs;
@@ -158,10 +158,10 @@ static void path_lookup_test() {
 		while (*input != 0) {
 			log_begin_op(log);
 			if (tc->nameiparent) {
-				ip = path_lookup_parent(get_current_part(), *input, name);
+				ip = path_lookup_parent(get_current_disk(), *input, name);
 				assert_str_equal(tc->name, name);
 			} else {
-				ip = path_lookup(get_current_part(), *input);
+				ip = path_lookup(get_current_disk(), *input);
 			}
 			if (tc->found_elemidx == -1) {
 				assert_ptr_equal(NULL, ip);
@@ -182,8 +182,8 @@ static void path_lookup_test() {
 static void mkf(struct path_record *r) {
 	char name[DIRENT_NAME_LENGTH];
 	char *p = r->path;
-	struct disk_partition *part = get_current_part();
-	struct inode *root = path_lookup(part, "/");
+	struct disk *disk = get_current_disk();
+	struct inode *root = path_lookup(disk, "/");
 	
 	struct inode *ip = root;
 	struct dirent dirent;
@@ -198,7 +198,7 @@ static void mkf(struct path_record *r) {
 		struct inode *next = dir_lookup(ip, name, NULL);
 		if (next == NULL) {
 			enum inode_type typ = *p == 0 ? r->type : INODE_DIRECTORY;
-			next = inode_alloc(part, typ);
+			next = inode_alloc(disk, typ);
 			assert_ptr_not_equal(NULL, next);
 			inode_lock(next);
 			strcpy(dirent.name, name);
@@ -220,8 +220,8 @@ static void mkf(struct path_record *r) {
 
 static void rmf(struct path_record *r) {
 	struct dirent dirent;
-	struct disk_partition *part = get_current_part();
-	struct inode *root = path_lookup(part, "/");
+	struct disk *disk = get_current_disk();
+	struct inode *root = path_lookup(disk, "/");
 	uint32_t off = 0;
 	while (inode_read(root, &dirent, off, sizeof dirent) >= 0) {
 		if (dirent.inum == r->path_elements[0]->inum) {

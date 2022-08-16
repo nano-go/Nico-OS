@@ -1,3 +1,4 @@
+#include <bits/seek_constants.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -7,33 +8,38 @@
 #include "common.h"    // ckxxx functions are in the common.h
 #include "disk.h"
 #include "fs.h"
-#include "gpt.h"
 #include "superblock.h"
 
 static char *nameptr(char *path);
-static bool createfs(struct part *);
-static uint32_t create_root_file(struct part *);
-static void create_initial_files(struct part *, int fcnt, char **binfiles);
+static bool createfs(struct disk *);
+static uint32_t create_root_file(struct disk *);
+static void create_initial_files(struct disk *, int fcnt, char **binfiles);
 
 int main(int argc, char **argv) {
+
+	FILE *hdimgfp;
+	size_t file_size;
+	struct disk disk;
+
 	if (argc <= 2) {
 		fprintf(stderr, "mkfs: missing input files.\n");
 		exit(1);
 	}
 
-	FILE *hdimgfp = ckfopen(argv[1], "r+");
-	struct part *part = scan_gpt_partitions(hdimgfp);
-	
-	if (part == NULL) {
-		fprintf(stderr, "mkfs: no partitions.\n");
-		exit(1);
+	hdimgfp = ckfopen(argv[1], "r+");
+	fseek(hdimgfp, 0, SEEK_END);
+	file_size = ftell(hdimgfp);
+	rewind(hdimgfp);
+
+	if (file_size % 512 != 0 || file_size < 512*40) {
+		fprintf(stderr, "mkfs: invalid image file: %s", argv[1]);
 	}
 
-	while (part != NULL) {
-		if (createfs(part)) {
-			create_initial_files(part, argc - 2, &argv[2]);
-		}
-		part = part->next;
+	disk.fp = hdimgfp;
+	disk.sector_cnt = file_size/512;
+	
+	if (createfs(&disk)) {
+		create_initial_files(&disk, argc - 2, &argv[2]);
 	}
 	return 0;
 }
@@ -49,26 +55,32 @@ static char *nameptr(char *path) {
 	return name;
 }
 
-static bool createfs(struct part *p) {
+static bool createfs(struct disk *disk) {
 	char buf[512];
 	struct superblock *sb = (struct superblock *) buf;
-	read_sector(p->fd, p->start_lba + 1, buf, 1);
+	// Read one sector(512 bytes) to the buffer at the lba 1.
+	read_sector(disk->fp, 1, buf, 1);
 	if (sb->magic == SUPER_BLOCK_MAGIC) {
 		printf("found fs.\n");
 		return false;
 	}
-	superblock_init(p, sb);
-	write_sector(p->fd, p->start_lba + 1, buf, 1);
-	p->sb = ckmalloc(sizeof(struct superblock));
-	memcpy(p->sb, sb, sizeof(struct superblock));
+	superblock_init(disk, sb);
+	// Write the buffer(superblock) to the image file.
+	write_sector(disk->fp, 1, buf, 1);
+	disk->sb = ckmalloc(sizeof(struct superblock));
+	memcpy(disk->sb, sb, sizeof(struct superblock));
 	return true;
 }
 
-static void create_initial_files(struct part *part, int fcnt, char **binfiles) {
-	uint32_t root = create_root_file(part);
-	uint32_t bindir = fs_mkdir(part, root, "bin");
-	uint32_t devdir = fs_mkdir(part, root, "dev");
-	fs_mkdev(part, 1, 0, devdir, "console");
+/**
+ * We create initial files if the file system in the given disk has
+ * just been created.
+ */
+static void create_initial_files(struct disk *disk, int fcnt, char **binfiles) {
+	uint32_t root = create_root_file(disk);
+	uint32_t bindir = fs_mkdir(disk, root, "bin");
+	uint32_t devdir = fs_mkdir(disk, root, "dev");
+	fs_mkdev(disk, 1, 0, devdir, "console");
 
 	for (int i = 0; i < fcnt; i++) {
 		char *path = binfiles[i];
@@ -78,16 +90,16 @@ static void create_initial_files(struct part *part, int fcnt, char **binfiles) {
 		ckfread(content, size, 1, fp);
 		
 		char *name = nameptr(path);   // e.g: /bin/ls -> ls
-		uint32_t inum = fs_mkfile(part, bindir, name);
-		iappend(part, inum, content, size);
+		uint32_t inum = fs_mkfile(disk, bindir, name);
+		iappend(disk, inum, content, size);
 		
 		free(content);
 		fclose(fp);
 	}
 }
 
-static uint32_t create_root_file(struct part *part) {
-	uint32_t inum = fs_mkdir(part, 0, "/");
+static uint32_t create_root_file(struct disk *disk) {
+	uint32_t inum = fs_mkdir(disk, 0, "/");
 	if (inum != ROOT_INUM) {
 		fprintf(stderr, "mkfs: the root inum is not %d: %d\n", ROOT_INUM, inum);
 		exit(1);

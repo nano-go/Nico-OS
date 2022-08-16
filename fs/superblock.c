@@ -14,7 +14,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 #ifndef NDEBUG
-static void print_inode_usage(struct disk_partition *part, struct superblock *sb) {
+static void print_inode_usage(struct disk *disk, struct superblock *sb) {
 	struct buf *buf;
 	struct dinode *dip;
 	uint32_t inum;
@@ -22,7 +22,7 @@ static void print_inode_usage(struct disk_partition *part, struct superblock *sb
 	printk("\nInodes in use: \n");
 	// inum = 1: inum 0 is the NULL inode.
 	for (inum = 1; inum < sb->ninodes; inum++) {
-		buf = buf_read(part->disk, GET_INODE_BLOCK_NO(inum, *sb));
+		buf = buf_read(disk, GET_INODE_BLOCK_NO(inum, *sb));
 		dip = (struct dinode *) buf->data + (inum % INODES_PER_BLOCK);
 		if (dip->type != INODE_NONE) {
 			printk("(inum: %d, type: %d, size: %d, major: %d), ", inum,
@@ -33,7 +33,7 @@ static void print_inode_usage(struct disk_partition *part, struct superblock *sb
 	printk("\n\n");
 }
 
-static void print_data_bitmap(struct disk_partition *part, struct superblock *sb) {
+static void print_data_bitmap(struct disk *disk, struct superblock *sb) {
 	struct buf *buf;
 	uint32_t bmap_bits = sb->bmap_bytes * 8;
 	uint32_t bmap_block_no = sb->bmap_start;
@@ -46,7 +46,7 @@ static void print_data_bitmap(struct disk_partition *part, struct superblock *sb
 			bits = bmap_bits;
 		}
 		
-		buf = buf_read(part->disk, bmap_block_no);
+		buf = buf_read(disk, bmap_block_no);
 		for (uint bit = 0; bit < bits; bit++, bit_nt ++) {
 			uint8_t m = 1 << (bit % 8);
 			if ((buf->data[bit / 8] & m) != 0) {
@@ -62,12 +62,8 @@ static void print_data_bitmap(struct disk_partition *part, struct superblock *sb
 }
 
 // For debugging.
-void print_superblock(struct superblock *sb, struct disk_partition *part,
-					  bool details) {
-	printk("Superblock in the partition %s:\n", part->name);
-	printk("    Start LBA:             %d\n", part->start_lba);
-	printk("    End LBA:               %d\n", part->end_lba);
-	printk("    Size:                  %d blocks\n", sb->size);
+void print_superblock(struct disk *disk, struct superblock *sb, bool details) {
+	printk("Superblock in the disk %s:\n", disk->name);
 	
 	printk("    Inodes:                %d\n", sb->ninodes);
 	printk("    Inode Block Range:     [%d, %d]\n", sb->inode_start,
@@ -85,8 +81,8 @@ void print_superblock(struct superblock *sb, struct disk_partition *part,
 	printk("    Data Block Start:      %d (Block Number)\n", sb->bdata_start);
 
 	if (details) {
-		print_inode_usage(part, sb);
-		print_data_bitmap(part, sb);
+		print_inode_usage(disk, sb);
+		print_data_bitmap(disk, sb);
 	}
 }
 #endif /* NDEBUG */

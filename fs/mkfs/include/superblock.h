@@ -1,13 +1,14 @@
 #ifndef _SUPERBLOCK_H
 #define _SUPERBLOCK_H
 
-#include "gpt.h"
 #include <stdint.h>
+#include <stdio.h>
 
 #define ROUND_UP(X, STEP) (((X) + (STEP) - 1) / (STEP))
 
 #define SUPER_BLOCK_MAGIC 0xF2E3EACF
 
+struct disk;
 struct superblock {
 	uint32_t magic;        // Magic Number
 	uint32_t size;         // Number of blocks.
@@ -21,6 +22,6 @@ struct superblock {
 	uint32_t bdata_start;  // Block number of the first data block.
 };
 
-void superblock_init(struct part *, struct superblock *);
+void superblock_init(struct disk*, struct superblock *);
 
 #endif /* _SUPERBLOCK_H */

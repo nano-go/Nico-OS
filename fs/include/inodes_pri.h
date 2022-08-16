@@ -7,7 +7,7 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-struct inode *iget(struct disk_partition *part, uint32_t inum);
+struct inode *iget(struct disk *disk, uint32_t inum);
 
 #ifdef __cplusplus
 #if __cplusplus

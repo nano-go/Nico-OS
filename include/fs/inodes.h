@@ -1,7 +1,6 @@
 #ifndef _FS_INODES_H
 #define _FS_INODES_H
 
-#include "kernel/dpartition.h"
 #include "kernel/semaphore.h"
 #include "stdint.h"
 #include "sys/stat.h"
@@ -23,11 +22,11 @@ enum inode_type {
 
 // On-disk inode structure.
 struct dinode {
-	enum inode_type type;    // File type.
-	uint32_t nlink;		  // Number of links to this inode in file system.
-	uint32_t size;		   // Size of file (bytes)
-	int32_t major;     	  // Major number of device(INODE_DEVICE only)
-	int32_t minor;     	  // Minor number of device(INODE_DEVICE only)
+	enum inode_type type; // File type.
+	uint32_t nlink;       // Number of links to this inode in file system.
+	uint32_t size;        // Size of file (bytes)
+	int32_t major;        // Major number of device(INODE_DEVICE only)
+	int32_t minor;        // Minor number of device(INODE_DEVICE only)
 	
 	// describe data block address.
 	uint32_t addrs[NDIRECT_DATA_BLOCKS + 1];
@@ -36,11 +35,11 @@ struct dinode {
 
 // in-memory inode structure(extra runtime information)
 struct inode {
-	struct disk_partition *part;  // Partition containing disk_inode.
-	uint32_t inum;		        // Inode number.
-	int ref;			          // Reference count.
-	struct semaphore sem;         // Protects everthing below here.
-	bool valid;			       // Inode has been read from disk?
+	struct disk *disk;    // Disk containing disk_inode.
+	uint32_t inum;        // Inode number.
+	int ref;              // Reference count.
+	struct semaphore sem; // Protects everthing below here.
+	bool valid;           // Inode has been read from disk?
 
 	struct dinode disk_inode;
 };
@@ -62,10 +61,10 @@ struct inode {
 void inodes_init();
 
 /**
- * Allocate a new inode in partition @part and return it or NULL if there 
- * are no free inodes.
+ * Allocate a new inode in the given disk and return it or NULL 
+ * if there are no free inodes.
  */
-struct inode *inode_alloc(struct disk_partition *part, enum inode_type typ);
+struct inode *inode_alloc(struct disk *disk, enum inode_type typ);
 
 void inode_lock(struct inode *ip);
 void inode_unlock(struct inode *ip);
@@ -75,7 +74,7 @@ static inline bool inode_holding(struct inode *ip) {
 }
 
 /**
- * Syncronize @ip->disk_inode to the disk @ip->part.
+ * Syncronize @ip->disk_inode to the disk @ip->disk.
  *
  * Caller must hold @ip->lock.
  */

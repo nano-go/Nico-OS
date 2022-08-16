@@ -35,7 +35,7 @@ void inodes_init() {
 }
 
 
-struct inode *iget(struct disk_partition *part, uint32_t inum) {
+struct inode *iget(struct disk *disk, uint32_t inum) {
 
 	struct inode *ip, *empty;
 	bool int_save;
@@ -44,7 +44,7 @@ struct inode *iget(struct disk_partition *part, uint32_t inum) {
 
 	empty = NULL;
 	for (ip = &icache.inodes[0]; ip < &icache.inodes[NINODES]; ip++) {
-		if (ip->ref > 0 && ip->part == part && ip->inum == inum) {
+		if (ip->ref > 0 && ip->disk == disk && ip->inum == inum) {
 			ip->ref++;
 			spinlock_release(&icache.lock, &int_save);
 			return ip;
@@ -58,7 +58,7 @@ struct inode *iget(struct disk_partition *part, uint32_t inum) {
 	ASSERT(empty != NULL);
 
 	ip = empty;
-	ip->part = part;
+	ip->disk = disk;
 	ip->inum = inum;
 	ip->ref = 1;
 	ip->valid = false;
@@ -69,31 +69,31 @@ struct inode *iget(struct disk_partition *part, uint32_t inum) {
 
 static void itruncate(struct inode *ip) {
 	struct dinode *dp;
-	struct disk_partition *part;
+	struct disk *disk;
 	struct buf *buf;
 	uint32_t *addrs;
 
 	dp = &ip->disk_inode;
-	part = ip->part;
+	disk = ip->disk;
 	for (int i = 0; i < NDIRECT_DATA_BLOCKS; i++) {
 		if (dp->addrs[i] != 0) {
-			bfree(part, dp->addrs[i]);
+			bfree(disk, dp->addrs[i]);
 			dp->addrs[i] = 0;
 		}
 	}
 
 	if (dp->addrs[NDIRECT_DATA_BLOCKS] != 0) {
-		buf = buf_read(part->disk, dp->addrs[NDIRECT_DATA_BLOCKS]);
+		buf = buf_read(disk, dp->addrs[NDIRECT_DATA_BLOCKS]);
 		addrs = (uint32_t *) buf->data;
 		for (uint i = 0; i < NINDIRECT_DATA_BLOCKS; i++) {
 			if (addrs[i] != 0) {
-				bfree(part, addrs[i]);
+				bfree(disk, addrs[i]);
 				addrs[i] = 0;
 			}
 		}
-		log_write(part->log, buf);
+		log_write(disk->log, buf);
 		buf_release(buf);
-		bfree(part, dp->addrs[NDIRECT_DATA_BLOCKS]);
+		bfree(disk, dp->addrs[NDIRECT_DATA_BLOCKS]);
 	}
 
 	dp->size = 0;
@@ -102,31 +102,31 @@ static void itruncate(struct inode *ip) {
 
 static uint32_t bmap(struct inode *ip, uint32_t bn) {
 	struct buf *buf;
-	struct disk_partition *part;
+	struct disk *disk;
 	struct dinode *dp;
 	uint32_t addr;
 	uint32_t *indirect_addrs;
 	ASSERT(bn < MAX_DATA_BLOCKS);
 
-	part = ip->part;
+	disk = ip->disk;
 	dp = &ip->disk_inode;
 	
 	if (bn < NDIRECT_DATA_BLOCKS) {
 		if ((addr = dp->addrs[bn]) == 0) {
-			dp->addrs[bn] = addr = balloc(part);
+			dp->addrs[bn] = addr = balloc(disk);
 		}
 		return addr;
 	}
 	
 	bn -= NDIRECT_DATA_BLOCKS;
 	if (dp->addrs[NDIRECT_DATA_BLOCKS] == 0) {
-		dp->addrs[NDIRECT_DATA_BLOCKS] = balloc(part);
+		dp->addrs[NDIRECT_DATA_BLOCKS] = balloc(disk);
 	}
-	buf = buf_read(part->disk, dp->addrs[NDIRECT_DATA_BLOCKS]);
+	buf = buf_read(disk, dp->addrs[NDIRECT_DATA_BLOCKS]);
 	indirect_addrs = (uint32_t *) buf->data;
 	if ((addr = indirect_addrs[bn]) == 0) {
-		indirect_addrs[bn] = addr = balloc(part);
-		log_write(part->log, buf);
+		indirect_addrs[bn] = addr = balloc(disk);
+		log_write(disk->log, buf);
 	}
 	buf_release(buf);
 	
@@ -134,24 +134,24 @@ static uint32_t bmap(struct inode *ip, uint32_t bn) {
 }
 
 struct inode*
-inode_alloc(struct disk_partition *part, enum inode_type typ) {
+inode_alloc(struct disk *disk, enum inode_type typ) {
 	struct superblock *sb;
 	struct buf *buf;
 	struct dinode *dip;
 	uint32_t inum;
 
-	sb = part->sb;
+	sb = disk->sb;
 	
 	// inum = 1: inum 0 is the NULL inode.
 	for (inum = 1; inum < sb->ninodes; inum++) {
-		buf = buf_read(part->disk, GET_INODE_BLOCK_NO(inum, *sb));
+		buf = buf_read(disk, GET_INODE_BLOCK_NO(inum, *sb));
 		dip = (struct dinode *) buf->data + (inum % INODES_PER_BLOCK);
 		if (dip->type == INODE_NONE) {
 			memset(dip, 0, sizeof(*dip));
 			dip->type = typ;
-			log_write(part->log, buf);
+			log_write(disk->log, buf);
 			buf_release(buf);
-			return iget(part, inum);
+			return iget(disk, inum);
 		}
 		buf_release(buf);
 	}
@@ -164,11 +164,11 @@ void inode_update(struct inode *ip) {
 	struct buf *buf;
 	struct dinode *dip;
 	
-	buf = buf_read(ip->part->disk, GET_INODE_BLOCK_NO(ip->inum, *ip->part->sb));
+	buf = buf_read(ip->disk, GET_INODE_BLOCK_NO(ip->inum, *ip->disk->sb));
 	dip = (struct dinode *) buf->data + ip->inum % INODES_PER_BLOCK;
 	
 	memcpy(dip, &ip->disk_inode, sizeof(*dip));
-	log_write(ip->part->log, buf);
+	log_write(ip->disk->log, buf);
 	buf_release(buf);
 }
 
@@ -189,8 +189,8 @@ void inode_lock(struct inode *ip) {
 	sem_wait(&ip->sem);
 		
 	if (!ip->valid) {
-		buf = buf_read(ip->part->disk,
-					   GET_INODE_BLOCK_NO(ip->inum, *ip->part->sb));
+		buf = buf_read(ip->disk,
+					   GET_INODE_BLOCK_NO(ip->inum, *ip->disk->sb));
 		dip = (struct dinode *) buf->data + (ip->inum % INODES_PER_BLOCK);
 		ASSERT(dip->type != INODE_NONE);
 		memcpy(&ip->disk_inode, dip, sizeof(*dip));
@@ -257,7 +257,7 @@ int inode_read(struct inode *ip, void *dst, uint32_t offset, uint32_t n) {
 	for (uint32_t total = 0; total < n; total += m, offset += m, dst +=m) {
 		uint32_t bn = offset / BLOCK_SIZE;
 		uint32_t db_addr = bmap(ip, bn);
-		buf = buf_read(ip->part->disk, db_addr);
+		buf = buf_read(ip->disk, db_addr);
 
 		m = BLOCK_SIZE - offset % BLOCK_SIZE;
 		if (m > (n - total)) {
@@ -298,7 +298,7 @@ int inode_write(struct inode *ip, void *src, uint32_t offset, uint32_t n) {
 	for (uint32_t total = 0; total < n; total += m, offset += m, src +=m) {
 		uint32_t bn = offset / BLOCK_SIZE;
 		uint32_t db_addr = bmap(ip, bn);
-		buf = buf_read(ip->part->disk, db_addr);
+		buf = buf_read(ip->disk, db_addr);
 
 		m = BLOCK_SIZE - offset % BLOCK_SIZE;
 		if (m > (n - total)) {
@@ -306,7 +306,7 @@ int inode_write(struct inode *ip, void *src, uint32_t offset, uint32_t n) {
 		}
 		memcpy(buf->data + (offset % BLOCK_SIZE), src, m);
 
-		log_write(ip->part->log, buf);
+		log_write(ip->disk->log, buf);
 		buf_write(buf);
 		buf_release(buf);
 	}

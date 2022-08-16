@@ -1,5 +1,4 @@
 #include "kernel/debug.h"
-#include "kernel/dpartition.h"
 #include "kernel/proc.h"
 #include "kernel/sched.h"
 #include "kernel/task.h"
@@ -217,7 +216,7 @@ void task_exit(int status) {
 	}
 
 	if (task->cwd != NULL) {
-		struct log *log = task->cwd->part->log;
+		struct log *log = task->cwd->disk->log;
 		log_begin_op(log);
 		inode_put(task->cwd);
 		log_end_op(log);

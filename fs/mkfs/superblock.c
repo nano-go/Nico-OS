@@ -3,18 +3,18 @@
 #include "superblock.h"
 #include <stdlib.h>
 
-void superblock_init(struct part *part, struct superblock *sb) {
+void superblock_init(struct disk *disk, struct superblock *sb) {
 	
 	uint32_t inode_blocks, bmap_blocks, data_blocks;
 	uint32_t bmap_bytes;
 		
 	sb->magic = SUPER_BLOCK_MAGIC;
-	sb->size = LBA_TO_BLOCK_NO(part->sector_cnt);
+	sb->size = LBA_TO_BLOCK_NO(disk->sector_cnt);
 	
 	// Skip boot sector and superblock sector.
-	sb->inode_start = LBA_TO_BLOCK_NO(part->start_lba + 2);
-	sb->ninodes = NFILES_PER_PART;
-	inode_blocks = ROUND_UP(NFILES_PER_PART, INODES_PER_BLOCK);
+	sb->inode_start = LBA_TO_BLOCK_NO(2);
+	sb->ninodes = NFILES_PER_DISK;
+	inode_blocks = ROUND_UP(NFILES_PER_DISK, INODES_PER_BLOCK);
 	
 	sb->log_start = sb->inode_start + inode_blocks + 1;
 	sb->nlog = LOG_SIZE + 1; // log header and log blocks.
@@ -46,6 +46,6 @@ void superblock_init(struct part *part, struct superblock *sb) {
 	// File system has 100 data blocks at least.
 
 bad:
-	fprintf(stderr, "mkfs: partition is so small.\n");
+	fprintf(stderr, "mkfs: the image file is so small.\n");
 	exit(1);
 }

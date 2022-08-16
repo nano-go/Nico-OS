@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include "param.h"
 #include "common.h"
+#include "superblock.h"
+
+struct disk {
+	FILE *fp;
+	struct superblock *sb;
+	int sector_cnt;
+};
 
 static inline void read_sector(FILE *fp, int lba, char *buf, int sector_cnt) {
 	fseek(fp, lba * SECTOR_SIZE, SEEK_SET);

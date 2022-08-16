@@ -70,9 +70,9 @@ void file_close(struct file *f) {
 	spinlock_release(&ftable.lock, &int_save);
 
 	if (typ == FD_INODE) {
-		log_begin_op(f->inode->part->log);
+		log_begin_op(f->inode->disk->log);
 		inode_put(f->inode);
-		log_end_op(f->inode->part->log);
+		log_end_op(f->inode->disk->log);
 	} else if (typ == FD_PIPE) {
 		pipe_close(f->pipe, f->writable);
 	}
@@ -132,13 +132,13 @@ int file_write(struct file *f, void *src, uint32_t n) {
 					n1 = max;
 				}
 				
-				log_begin_op(f->inode->part->log);
+				log_begin_op(f->inode->disk->log);
 				inode_lock(f->inode);
 				if ((r = inode_write(f->inode, src, f->offset, n1)) > 0) {
 					f->offset += r;
 				}
 				inode_unlock(f->inode);
-				log_end_op(f->inode->part->log);
+				log_end_op(f->inode->disk->log);
 
 				if (r < 0) {
 					break;

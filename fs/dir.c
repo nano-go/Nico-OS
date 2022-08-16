@@ -28,7 +28,7 @@ struct inode *dir_lookup(struct inode *dir, char *name, uint32_t *off) {
 			if (off != NULL) {
 				*off = offset;
 			}
-			return iget(dir->part, dirent.inum);
+			return iget(dir->disk, dirent.inum);
 		}
 	}
 

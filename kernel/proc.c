@@ -1,6 +1,5 @@
 #include "fs/log.h"
 #include "fs/pathname.h"
-#include "kernel/dpartition.h"
 #include "kernel/elf.h"
 #include "kernel/memory.h"
 #include "kernel/proc.h"
@@ -107,7 +106,7 @@ static struct task_struct *create_initproc(void *entry_addr) {
 	if (!init_user_stack(proc, entry_addr)) {
 		goto bad;
 	}
-	if ((proc->cwd = path_lookup(get_current_part(), "/")) == NULL) {
+	if ((proc->cwd = path_lookup(get_current_disk(), "/")) == NULL) {
 		goto bad;
 	}
 	return proc;

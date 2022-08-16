@@ -8,6 +8,7 @@
 
 #include "kernel/console.h"
 #include "kernel/fcntl.h"
+#include "kernel/ide.h"
 #include "kernel/memory.h"
 #include "kernel/pipe.h"
 #include "kernel/task.h"
@@ -47,17 +48,17 @@ static struct file *fetch_file(int fd) {
 
 static struct inode *create_file(char *path, enum inode_type typ) {
 	struct dirent dirent;
-	struct disk_partition *part;
+	struct disk *disk;
 	struct inode *dir, *ip;
 	char name[DIRENT_NAME_LENGTH];
 
 	dir = ip = NULL;
-	part = get_current_part();
+	disk = get_current_disk();
 
-	log_begin_op(part->log);
+	log_begin_op(disk->log);
 	
 	// find parent directory.
-	dir = path_lookup_parent(part, path, name);
+	dir = path_lookup_parent(disk, path, name);
 	if (dir == NULL) {
 		goto bad;
 	}
@@ -78,7 +79,7 @@ static struct inode *create_file(char *path, enum inode_type typ) {
 	}
 	
 	// Create a new inode.
-	if ((ip = inode_alloc(part, typ)) == NULL) {
+	if ((ip = inode_alloc(disk, typ)) == NULL) {
 		goto bad;
 	}
 
@@ -104,7 +105,7 @@ static struct inode *create_file(char *path, enum inode_type typ) {
 success:
 	inode_unlockput(dir);
 	inode_unlock(ip);
-	log_end_op(part->log);
+	log_end_op(disk->log);
 	return ip;
 	
 bad:
@@ -114,7 +115,7 @@ bad:
 	if (ip != NULL) {
 		inode_unlockput(ip);
 	}
-	log_end_op(part->log);
+	log_end_op(disk->log);
 	return NULL;
 }
 
@@ -124,33 +125,33 @@ int sys_open(struct trap_frame *tf) {
 	struct file *file;
 	uint32_t omode;
 	int fd;
-	struct disk_partition *part;
+	struct disk *disk;
 	path = SYS_STRARG(1, tf);
 	if (path == NULL) {
 		return -1;
 	}
 	omode = SYS_ARG2(tf, uint32_t);
-	part = get_current_part();
+	disk = get_current_disk();
 	
-	log_begin_op(part->log);
+	log_begin_op(disk->log);
 
 	if ((omode & O_CREAT) != 0) {
 		ip = create_file(path, INODE_FILE);
 		if (ip == NULL) {
-			log_end_op(part->log);
+			log_end_op(disk->log);
 			return -1;
 		}
 	} else {
-		ip = path_lookup(part, path);
+		ip = path_lookup(disk, path);
 		if (ip == NULL) {
-			log_end_op(part->log);
+			log_end_op(disk->log);
 			return -1;
 		}
 		inode_lock(ip);
 		// A directory is only readable.
 		if (ip->disk_inode.type == INODE_DIRECTORY && (omode != O_RDONLY)) {
 			inode_unlockput(ip);
-			log_end_op(part->log);
+			log_end_op(disk->log);
 			return -1;
 		}
 		inode_unlock(ip);
@@ -158,17 +159,17 @@ int sys_open(struct trap_frame *tf) {
 
 	if ((file = file_alloc()) == NULL) {
 		inode_put(ip);
-		log_end_op(part->log);
+		log_end_op(disk->log);
 		return -1;
 	}
 	if ((fd = fd_alloc(file)) < 0) {
 		file_close(file);
 		inode_put(ip);
-		log_end_op(part->log);
+		log_end_op(disk->log);
 		return -1;
 	}
 	
-	log_end_op(part->log);
+	log_end_op(disk->log);
 
 	file->type = FD_INODE;
 	file->offset = (omode & O_APPEND) == 0 ? 0 : ip->disk_inode.size;
@@ -210,7 +211,7 @@ int sys_mkdir(struct trap_frame *tf) {
 	}
 	
 	struct inode *ip;
-	struct log *log = get_current_part()->log;
+	struct log *log = get_current_disk()->log;
 	log_begin_op(log);
 	if ((ip = create_file(path, INODE_DIRECTORY)) != NULL) {
 		inode_put(ip);
@@ -228,13 +229,13 @@ int sys_unlink(struct trap_frame *tf) {
 	}
 	
 	char name[DIRENT_NAME_LENGTH];
-	struct disk_partition *part = get_current_part();
-	struct log *log = part->log;
+	struct disk *disk = get_current_disk();
+	struct log *log = disk->log;
 	struct inode *parent, *ip;
 	uint32_t offset;
 	
 	log_begin_op(log);
-	if ((parent = path_lookup_parent(part, path, name)) == NULL) {
+	if ((parent = path_lookup_parent(disk, path, name)) == NULL) {
 		log_end_op(log);
 		return -1;
 	}
@@ -335,7 +336,7 @@ int sys_stat(struct trap_frame *tf) {
 	if (path == NULL || st == NULL) {
 		return -1;
 	}
-	struct inode *inode = path_lookup(get_current_part(), path);
+	struct inode *inode = path_lookup(get_current_disk(), path);
 	if (inode == NULL) {
 		return -1;
 	}
@@ -352,20 +353,20 @@ int sys_chdir(struct trap_frame *tf) {
 	}
 	
 	struct task_struct *cur_task = get_current_task();
-	struct disk_partition *part = get_current_part();
+	struct disk *disk = get_current_disk();
 	struct inode *new_cwd;
 	struct inode *prev_cwd;
 	
-	log_begin_op(part->log);
+	log_begin_op(disk->log);
 	
-	if ((new_cwd = path_lookup(part, path)) == NULL) {
-		log_end_op(part->log);
+	if ((new_cwd = path_lookup(disk, path)) == NULL) {
+		log_end_op(disk->log);
 		return -1;
 	}
 	inode_lock(new_cwd);
 	if (new_cwd->disk_inode.type != INODE_DIRECTORY) {
 		inode_unlockput(new_cwd);
-		log_end_op(part->log);
+		log_end_op(disk->log);
 		return -1;
 	}
 	prev_cwd = cur_task->cwd;
@@ -373,7 +374,7 @@ int sys_chdir(struct trap_frame *tf) {
 	inode_unlockput(new_cwd);
 	inode_put(prev_cwd);
 	
-	log_end_op(part->log);
+	log_end_op(disk->log);
 	return 0;
 }
 #ifdef __cplusplus

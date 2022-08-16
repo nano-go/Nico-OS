@@ -40,7 +40,7 @@ static void write_log(struct log *log) {
 }
 
 /**
- * Write in-memory log head to part.
+ * Write in-memory log head to log->disk.
  */
 static void write_head(struct log *log) {
 	struct buf *buf = buf_read(log->disk, log->log_start);

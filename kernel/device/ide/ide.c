@@ -5,8 +5,6 @@
 #include "kernel/x86.h"
 #include "stdio.h"
 
-#include "include/gpt_pri.h"
-
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -54,6 +52,8 @@ struct ide_channel ide_chans[2] = {
 
 static struct spinlock idelock;
 static struct buf *idequeue;
+
+static struct disk *cur_disk = NULL;
 
 /**
  * Setup the LBA disk address and the number of sectors to be operated.
@@ -184,19 +184,25 @@ static void init_ide_chan(struct ide_channel *ide_chan) {
 	setup_irq_handler(ide_chan->irq_no, ide_intr_handler);
 	enable_irq(ide_chan->irq_no);
 	
-	// Init Hard Disks
 	for (int dev_no = 0; dev_no < 2; dev_no++) {
 		struct disk *hd = &ide_chan->devices[dev_no];
 		sprintf(hd->name, "hd%c", 'a' + dev_no);
 		hd->dev_no = dev_no;
-		hd->ide_chan = ide_chan;
-		list_init(&hd->partitions);
+		hd->ide_chan = ide_chan;	
+
+		// Initialize sb and log in 'fs.c'(only initialize cur_disk).
+		hd->sb = NULL;
+		hd->log = NULL;
 		
-		// Don't scan the main hard disk.
+		// Don't use the main hard disk as a fs.
 		if (dev_no != 0 || ide_chan->ide_chan_id != 0) {
-			scan_partitions(hd);
+			cur_disk = hd;
 		}
 	}
+}
+
+struct disk* get_current_disk() {
+	return cur_disk;
 }
 
 uint8_t get_ide_channel_cnt() {
@@ -219,14 +225,9 @@ void ide_init() {
 		init_ide_chan(&ide_chans[nr]);
 	}
 
-	if (list_empty(&all_paritions)) {
-		PANIC("No partition found.");
+	if (cur_disk == NULL) {
+		PANIC("No disk found.");
 	}
-	
-	struct disk_partition *part = NODE_AS(
-		struct disk_partition, LIST_FIRST(&all_paritions), all_parts_node);
-	mount_partition(part);
-	
 	printk("ide_init done...\n");
 }
 

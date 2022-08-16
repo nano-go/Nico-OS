@@ -121,7 +121,7 @@ static bool setup_ustack(struct vm *vm) {
 int proc_execv(char *path, char **argv) {
 	struct elfhdr eh;
 	struct task_struct *proc = get_current_task();
-	struct disk_partition *part = get_current_part();
+	struct disk *disk = get_current_disk();
 	struct inode *ip = NULL;
 	struct vm *new_vm = NULL, *older_vm = proc->vm;
 
@@ -129,8 +129,8 @@ int proc_execv(char *path, char **argv) {
 		return -1;
 	}
 
-	log_begin_op(part->log);
-	if ((ip = path_lookup(part, path)) == NULL) {
+	log_begin_op(disk->log);
+	if ((ip = path_lookup(disk, path)) == NULL) {
 		goto bad;
 	}
 	inode_lock(ip);
@@ -148,7 +148,7 @@ int proc_execv(char *path, char **argv) {
 		goto bad;
 	}
 	inode_unlockput(ip);
-	log_end_op(part->log);
+	log_end_op(disk->log);
 
 	if (!setup_ustack(new_vm)) {
 		vm_free(new_vm);
@@ -174,6 +174,6 @@ bad:
 	if (new_vm != NULL) {
 		vm_free(new_vm);
 	}
-	log_end_op(part->log);
+	log_end_op(disk->log);
 	return -1;
 }

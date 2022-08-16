@@ -7,7 +7,6 @@
  *   - ide_write/ide_read
  */
 
-#include "dpartition.h"
 #include "list.h"
 #include "semaphore.h"
 
@@ -26,11 +25,26 @@ extern "C" {
 struct ide_channel;
 struct buf;
 
+/**
+ * NicoOS is a simple operating system, so a disk has only one file
+ * system(FS).
+ */
 struct disk {
 	char name[8];
+
 	uint32_t dev_no;
 	struct ide_channel *ide_chan;
-	struct list partitions;
+
+	/**
+	 * The superblock stores the information of FS. 
+	 */
+	struct superblock *sb;
+
+	/**
+	 * The log ensures the syncronization of file data.
+	 */
+	struct log *log;
+
 };
 
 struct ide_channel {
@@ -46,6 +60,11 @@ void ide_init();
 
 uint8_t get_ide_channel_cnt();
 struct ide_channel *get_ide_channel(uint8_t nr);
+
+/**
+ * Rerurn the current disk, which can be used as a file system.
+ */
+struct disk *get_current_disk();
 
 void ide_write(struct disk *disk, uint32_t lba, uint32_t secs, void *buf);
 void ide_read(struct disk *disk, uint32_t lba, uint32_t secs, void *buf);

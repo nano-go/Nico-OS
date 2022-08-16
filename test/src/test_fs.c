@@ -38,45 +38,45 @@ void fs_test() {
 
 static void data_block_test() {
 	
-	extern uint32_t balloc(struct disk_partition * part);
-	extern void bfree(struct disk_partition * part, uint32_t block_no);
+	extern uint32_t balloc(struct disk *disk);
+	extern void bfree(struct disk *disk, uint32_t block_no);
 
-	struct disk_partition *part = get_current_part();
-	struct log *log = part->log;
+	struct disk *disk = get_current_disk();
+	struct log *log = disk->log;
 	
-	uint32_t free_dblocks = get_free_data_blocks(part);
+	uint32_t free_dblocks = get_free_data_blocks(disk);
 
 #define DBLOCK_N 16
 	uint32_t *block_nos = kalloc(sizeof(uint32_t) * DBLOCK_N);
 	
 	log_begin_op(log);
 	for (int i = 0; i < DBLOCK_N; i++) {
-		block_nos[i] = balloc(part);
-		assert_true(block_nos[i] >= part->sb->bdata_start);
+		block_nos[i] = balloc(disk);
+		assert_true(block_nos[i] >= disk->sb->bdata_start);
 		if (i != 0) {
 			assert_true(block_nos[i] > block_nos[i - 1]);
 		}
 	}
 
-	assert_int_equal(free_dblocks - DBLOCK_N, get_free_data_blocks(part));
+	assert_int_equal(free_dblocks - DBLOCK_N, get_free_data_blocks(disk));
 	
 	for (int i = 0; i < DBLOCK_N / 2; i++) {
-		bfree(part, block_nos[i]);
+		bfree(disk, block_nos[i]);
 	}
 
-	assert_int_equal(free_dblocks - DBLOCK_N / 2, get_free_data_blocks(part));
+	assert_int_equal(free_dblocks - DBLOCK_N / 2, get_free_data_blocks(disk));
 
 	for (int i = 0; i < DBLOCK_N / 2; i++) {
-		assert_int_equal(block_nos[i], balloc(part));
+		assert_int_equal(block_nos[i], balloc(disk));
 	}
 	
-	assert_int_equal(free_dblocks - DBLOCK_N, get_free_data_blocks(part));
+	assert_int_equal(free_dblocks - DBLOCK_N, get_free_data_blocks(disk));
 	
 	for (int i = 0; i < DBLOCK_N; i++) {
-		bfree(part, block_nos[i]);
+		bfree(disk, block_nos[i]);
 	}
 	
-	assert_int_equal(free_dblocks, get_free_data_blocks(part));
+	assert_int_equal(free_dblocks, get_free_data_blocks(disk));
 	
 	log_end_op(log);
 	kfree(block_nos);
@@ -89,8 +89,8 @@ static void inode_test() {
 	struct inode **ips; // Inode pointers
 	uint32_t free_inodes;
 
-	struct disk_partition *part = get_current_part();
-	struct log *log = part->log;
+	struct disk *disk = get_current_disk();
+	struct log *log = disk->log;
 
 	bool int_save;
 	INT_LOCK(int_save);
@@ -98,11 +98,11 @@ static void inode_test() {
 #define NIPS 20 // Number of inode pointers
 	ips = kalloc(sizeof(*ips) * NIPS);
 	assert_ptr_not_equal(NULL, ips);
-	free_inodes = get_free_inodes(part);
+	free_inodes = get_free_inodes(disk);
 	
 	log_begin_op(log);
 	for (int i = 0; i < NIPS; i++) {
-		ips[i] = ip = inode_alloc(part, INODE_FILE);
+		ips[i] = ip = inode_alloc(disk, INODE_FILE);
 		inode_lock(ip);
 		assert_true(ip->inum >= 1);
 		assert_int_equal(INODE_FILE, ip->disk_inode.type);
@@ -113,7 +113,7 @@ static void inode_test() {
 	}
 	log_end_op(log);
 
-	assert_int_equal(free_inodes - NIPS, get_free_inodes(part));
+	assert_int_equal(free_inodes - NIPS, get_free_inodes(disk));
 
 	log_begin_op(log);
 	for (int i = 0; i < NIPS; i++) {
@@ -122,7 +122,7 @@ static void inode_test() {
 	}
 	log_end_op(log);
 
-	assert_int_equal(free_inodes, get_free_inodes(part));
+	assert_int_equal(free_inodes, get_free_inodes(disk));
 	kfree(ips);
 #undef NIPS
 
@@ -132,8 +132,8 @@ static void inode_test() {
 static void inode_rw_test() {
 	struct inode *ip;
 	
-	struct disk_partition *part = get_current_part();
-	struct log *log = part->log;
+	struct disk *disk = get_current_disk();
+	struct log *log = disk->log;
 	
 	bool int_save;
 	INT_LOCK(int_save);
@@ -147,7 +147,7 @@ static void inode_rw_test() {
 
 	log_begin_op(log);
 
-	ip = inode_alloc(part, INODE_FILE);
+	ip = inode_alloc(disk, INODE_FILE);
 	inode_lock(ip);
 	memset(data, 0xe2, DATA_SIZE);
 
@@ -181,11 +181,11 @@ static struct inode *inc_dir(struct inode *dir, char *name) {
 	struct inode *ip;
 	struct dirent diren;
 	
-	struct disk_partition *part = get_current_part();
-	struct log *log = part->log;
+	struct disk *disk = get_current_disk();
+	struct log *log = disk->log;
 
 	log_begin_op(log);
-	ip = inode_alloc(get_current_part(), INODE_FILE);
+	ip = inode_alloc(get_current_disk(), INODE_FILE);
 	inode_lock(ip);
 	assert_ptr_not_equal(NULL, ip);
 	strcpy(diren.name, name);
@@ -205,16 +205,16 @@ static void dir_test() {
 	char name[DIREN_SIZE];
 	uint32_t free_dblocks;
 	
-	struct disk_partition *part = get_current_part();
-	struct log *log = part->log;
+	struct disk *disk = get_current_disk();
+	struct log *log = disk->log;
 
 	bool int_save;
 	INT_LOCK(int_save);
 
-	free_dblocks = get_free_data_blocks(part);
+	free_dblocks = get_free_data_blocks(disk);
 	
 	log_begin_op(log);
-	dir = inode_alloc(part, INODE_DIRECTORY);
+	dir = inode_alloc(disk, INODE_DIRECTORY);
 	inode_lock(dir);
 
 	assert_int_equal(dir->disk_inode.type, INODE_DIRECTORY);
@@ -245,7 +245,7 @@ static void dir_test() {
 
 	inode_unlockput(dir);
 	log_end_op(log);
-	assert_int_equal(free_dblocks, get_free_data_blocks(part));
+	assert_int_equal(free_dblocks, get_free_data_blocks(disk));
 	INT_UNLOCK(int_save);
 
 #undef DIREN_SIZE

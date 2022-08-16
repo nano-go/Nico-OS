@@ -1,7 +1,6 @@
 #include "kernel/buf.h"
 #include "kernel/console.h"
 #include "kernel/debug.h"
-#include "kernel/dpartition.h"
 #include "kernel/ide.h"
 #include "kernel/iopic.h"
 #include "kernel/keyboard.h"
@@ -34,7 +33,6 @@ static void init_all() {
 	syscall_init();
 	
 	bio_init();
-	dpartition_init();
 	ide_init();
 	fs_init();
 	console_init();
