@@ -1,4 +1,5 @@
 #include "kernel/buf.h"
+#include "kernel/debug.h"
 #include "kernel/ide.h"
 #include "kernel/iopic.h"
 #include "kernel/trap.h"
@@ -10,6 +11,10 @@
 extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
+
+/**
+ * This file implements a simple PIO-based(Programmed I/O) IDE driver
+ */
 
 #define PORT_DATA(ide_chan)        ((ide_chan)->port_base + 0)
 #define PORT_ERROR(ide_chan)       ((ide_chan)->port_base + 1)
@@ -79,42 +84,7 @@ static int idewait(struct ide_channel *ide_chan) {
 	if ((r & (IDE_DF | IDE_ERR)) != 0) {
 		return -1;
 	}
-	
 	return 0;
-}
-
-static void ide_write_to_disk(struct disk *disk, uint32_t lba, uint32_t secs,
-							  void *buf) {
-	bool int_save;
-	spinlock_acquire(&idelock, &int_save);
-
-	select_secs(disk, lba, secs);
-	outb(PORT_CMD(disk->ide_chan), CMD_WRITE);
-	if (idewait(disk->ide_chan) == 0) {
-		outsl(PORT_DATA(disk->ide_chan), buf, SECTOR_SIZE * secs / 4);
-		
-		// Block self until the IDE interruption occurs(write to finish).
-		sem_wait(&disk->ide_chan->sem);
-	}
-	
-	spinlock_release(&idelock, &int_save);
-}
-
-static void ide_read_from_disk(struct disk *disk, uint32_t lba, uint32_t secs,
-							   void *buf) {
-	bool int_save;
-	spinlock_acquire(&idelock, &int_save);
-	
-	select_secs(disk, lba, secs);
-	outb(PORT_CMD(disk->ide_chan), CMD_READ);
-	
-	// Block self until the IDE interruption occurs(prepare).
-	sem_wait(&disk->ide_chan->sem);
-	if (idewait(disk->ide_chan) == 0) {
-		insl(PORT_DATA(disk->ide_chan), buf, SECTOR_SIZE * secs / 4);
-	}
-	
-	spinlock_release(&idelock, &int_save);
 }
 
 /**
@@ -131,19 +101,23 @@ static void idestart(struct buf *buf) {
 
 	select_secs(buf->disk, sector_lba, sectors_per_block);
 	if (buf->flags & BUF_FLAGS_DIRTY) {
+		// write buffer to the disk.
 		outb(PORT_CMD(ide_chan), GET_CMD_WRITE(sectors_per_block));
 		outsl(PORT_DATA(ide_chan), buf->data, BLOCK_SIZE / 4);
 	} else {
+		// send a read command to IDE.
+		// see ide_intr_handler.
 		outb(PORT_CMD(ide_chan), GET_CMD_READ(sectors_per_block));
 	}
 }
 
 /**
- * IDE Interrupt handler.
+ * IDE interrupt handler.
  */
 static void ide_intr_handler(struct trap_frame *tf) {
 	ASSERT(tf->intr_nr == IRQ_START_VEC_NR + 0xe ||
 		   tf->intr_nr == IRQ_START_VEC_NR + 0xf);
+
 	bool int_save;
 	spinlock_acquire(&idelock, &int_save);
 
@@ -151,18 +125,13 @@ static void ide_intr_handler(struct trap_frame *tf) {
 	struct ide_channel *ide_chan = &ide_chans[ide_chan_idx];
 		
 	struct buf *buf = idequeue;
-	if (buf == NULL) {
-		// Wakeup the task wating for reading/writing.
-		// see ide_write_to_disk/ide_read_from_disk.
-		sem_signal(&ide_chan->sem);
-		spinlock_release(&idelock, &int_save);
-		return;
-	}
+	ASSERT(buf != NULL);
 	
 	if ((buf->flags & BUF_FLAGS_DIRTY) == 0 && idewait(ide_chan) == 0) {
 		// The buffer is invalid. read from disk.
 		insl(PORT_DATA(ide_chan), buf->data, BLOCK_SIZE / 4);
 	}
+	// Make the buffer valid and remove the dirty flag.
 	buf->flags |= BUF_FLAGS_VALID;
 	buf->flags &= ~BUF_FLAGS_DIRTY;
 	
@@ -177,95 +146,9 @@ static void ide_intr_handler(struct trap_frame *tf) {
 	spinlock_release(&idelock, &int_save);
 }
 
-static void init_ide_chan(struct ide_channel *ide_chan) {
-	sprintf(ide_chan->name, "ide_%d", ide_chan->ide_chan_id);
-	sem_init(&ide_chan->sem, 0, ide_chan->name);
-
-	setup_irq_handler(ide_chan->irq_no, ide_intr_handler);
-	enable_irq(ide_chan->irq_no);
-	
-	for (int dev_no = 0; dev_no < 2; dev_no++) {
-		struct disk *hd = &ide_chan->devices[dev_no];
-		sprintf(hd->name, "hd%c", 'a' + dev_no);
-		hd->dev_no = dev_no;
-		hd->ide_chan = ide_chan;	
-
-		// Initialize sb and log in 'fs.c'(only initialize cur_disk).
-		hd->sb = NULL;
-		hd->log = NULL;
-		
-		// Don't use the main hard disk as a fs.
-		if (dev_no != 0 || ide_chan->ide_chan_id != 0) {
-			cur_disk = hd;
-		}
-	}
-}
-
-struct disk* get_current_disk() {
-	return cur_disk;
-}
-
-uint8_t get_ide_channel_cnt() {
-	const uint8_t hd_cnt = HARD_DISK_CNT;
-	// Each IDE channel has two hard disks.
-	uint8_t ide_chan_cnt = ROUND_UP(hd_cnt, 2);
-	if (ide_chan_cnt > 2) {
-		ide_chan_cnt = 2;
-	}
-	return ide_chan_cnt;
-}
-
-void ide_init() {
-	printk("ide_init start...\n");
-	spinlock_init(&idelock);
-	idequeue = NULL;
-	
-	uint8_t ide_chan_cnt = get_ide_channel_cnt();
-	for (uint8_t nr = 0; nr < ide_chan_cnt; nr++) {
-		init_ide_chan(&ide_chans[nr]);
-	}
-
-	if (cur_disk == NULL) {
-		PANIC("No disk found.");
-	}
-	printk("ide_init done...\n");
-}
-
 struct ide_channel *get_ide_channel(uint8_t nr) {
 	ASSERT(nr < sizeof(ide_chans) / sizeof(*ide_chans));
 	return &ide_chans[nr];
-}
-
-void ide_write(struct disk *disk, uint32_t lba, uint32_t secs, void *buf) {
-	ASSERT(secs != 0);
-	uint32_t sec_per;
-	uint32_t sec_done = 0;
-
-	while (sec_done < secs) {
-		sec_per = 256;
-		if (secs - sec_done < 256) {
-			sec_per = secs - sec_done;
-		}
-		ide_write_to_disk(disk, lba, sec_per,
-						  (uint8_t *) buf + (sec_done * SECTOR_SIZE));
-		sec_done += sec_per;
-	}
-}
-
-void ide_read(struct disk *disk, uint32_t lba, uint32_t secs, void *buf) {
-	ASSERT(secs != 0);
-	uint32_t sec_per;
-	uint32_t sec_done = 0;
-	
-	while (sec_done < secs) {
-		sec_per = 256;
-		if (secs - sec_done < 256) {
-			sec_per = secs - sec_done;
-		}
-		ide_read_from_disk(disk, lba, sec_per,
-						   (uint8_t *) buf + (sec_done * SECTOR_SIZE));
-		sec_done += sec_per;
-	}
 }
 
 void iderw(struct buf *buf) {
@@ -292,6 +175,64 @@ void iderw(struct buf *buf) {
 		
 	spinlock_release(&idelock, &int_save);
 }
+
+
+
+
+static void init_ide_chan(struct ide_channel *ide_chan) {
+	sprintf(ide_chan->name, "ide_%d", ide_chan->ide_chan_id);
+	sem_init(&ide_chan->sem, 0, ide_chan->name);
+
+	setup_irq_handler(ide_chan->irq_no, ide_intr_handler);
+	enable_irq(ide_chan->irq_no);
+	
+	for (int dev_no = 0; dev_no < 2; dev_no++) {
+		struct disk *hd = &ide_chan->devices[dev_no];
+		sprintf(hd->name, "hd%c", 'a' + dev_no);
+		hd->dev_no = dev_no;
+		hd->ide_chan = ide_chan;	
+
+		// Initialize sb and log in 'fs.c'(only initialize cur_disk).
+		hd->sb = NULL;
+		hd->log = NULL;
+		
+		// Don't use the main hard disk as a file system.
+		if (dev_no != 0 || ide_chan->ide_chan_id != 0) {
+			cur_disk = hd;
+		}
+	}
+}
+
+struct disk* get_current_disk() {
+	return cur_disk;
+}
+
+uint8_t get_ide_channel_cnt() {
+	const uint8_t hd_cnt = HARD_DISK_CNT;
+	uint8_t ide_chan_cnt = ROUND_UP(hd_cnt, 2);
+	if (ide_chan_cnt > 2) {
+		ide_chan_cnt = 2;
+	}
+	return ide_chan_cnt;
+}
+
+void ide_init() {
+	printk("ide_init start...\n");
+	spinlock_init(&idelock);
+	idequeue = NULL;
+	
+	uint8_t ide_chan_cnt = get_ide_channel_cnt();
+	for (uint8_t nr = 0; nr < ide_chan_cnt; nr++) {
+		init_ide_chan(&ide_chans[nr]);
+	}
+
+	if (cur_disk == NULL) {
+		PANIC("No disk found.");
+	}
+	printk("ide_init done...\n");
+}
+
+
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -1,12 +1,6 @@
 #ifndef _KERNEL_IDE_H
 #define _KERNEL_IDE_H
 
-/**
- * The driver of IDE provides two ways to operate the disk:
- *   - Buffer (see kernel/bio.c)
- *   - ide_write/ide_read
- */
-
 #include "list.h"
 #include "semaphore.h"
 
@@ -33,15 +27,19 @@ struct disk {
 	char name[8];
 
 	uint32_t dev_no;
+
+	/**
+	 * The ide channel contains this disk.
+	 */
 	struct ide_channel *ide_chan;
 
 	/**
-	 * The superblock stores the information of FS. 
+	 * Use a superblock to store the information of FS. 
 	 */
 	struct superblock *sb;
 
 	/**
-	 * The log ensures the syncronization of file data.
+	 * Use a log to ensure the atomic operations of file data.
 	 */
 	struct log *log;
 
@@ -66,9 +64,6 @@ struct ide_channel *get_ide_channel(uint8_t nr);
  */
 struct disk *get_current_disk();
 
-void ide_write(struct disk *disk, uint32_t lba, uint32_t secs, void *buf);
-void ide_read(struct disk *disk, uint32_t lba, uint32_t secs, void *buf);
-
 /**
  * Write to disk or read from disk.
  * The buffer must be not valid. If the buffer is dirty, buffer->data
@@ -76,8 +71,6 @@ void ide_read(struct disk *disk, uint32_t lba, uint32_t secs, void *buf);
  * buffer->data.
  *
  * This function will set buffer->data = valid if success.
- *
- * Note: Don't use iderw with ide_write/ide_read.
  */
 void iderw(struct buf *buf);
 
