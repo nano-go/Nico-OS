@@ -1,11 +1,10 @@
-#include <bits/seek_constants.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"    // ckxxx functions are in the common.h
+#include "common.h" // ckxxx functions are in the common.h
 #include "disk.h"
 #include "fs.h"
 #include "superblock.h"
@@ -31,13 +30,13 @@ int main(int argc, char **argv) {
 	file_size = ftell(hdimgfp);
 	rewind(hdimgfp);
 
-	if (file_size % 512 != 0 || file_size < 512*40) {
+	if (file_size % 512 != 0 || file_size < 512 * 40) {
 		fprintf(stderr, "mkfs: invalid image file: %s", argv[1]);
 	}
 
 	disk.fp = hdimgfp;
-	disk.sector_cnt = file_size/512;
-	
+	disk.sector_cnt = file_size / 512;
+
 	if (createfs(&disk)) {
 		create_initial_files(&disk, argc - 2, &argv[2]);
 	}
@@ -88,11 +87,11 @@ static void create_initial_files(struct disk *disk, int fcnt, char **binfiles) {
 		uint32_t size = fsize(fp);
 		char *content = ckmalloc(size);
 		ckfread(content, size, 1, fp);
-		
-		char *name = nameptr(path);   // e.g: /bin/ls -> ls
+
+		char *name = nameptr(path); // e.g: /bin/ls -> ls
 		uint32_t inum = fs_mkfile(disk, bindir, name);
 		iappend(disk, inum, content, size);
-		
+
 		free(content);
 		fclose(fp);
 	}
