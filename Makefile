@@ -47,16 +47,25 @@ bochs: all
 	$(BOCHS) -f bochsrc
 
 qemu: all
-	$(QEMU) $(QEMUOPTS)
+	$(QEMU) $(QEMUOPT)
+
+qemu-gdb: all
+	$(QEMU) $(QEMUOPTS) -s -S
+
+qemu-sdl: all
+	$(QEMU) $(QEMUOPTS) -display sdl
+
+qemu-gtk: all
+	$(QEMU) $(QEMUOPTS) -display gtk
+
+qemu-curses: all
+	$(QEMU) $(QEMUOPTS) -display curses
 
 qemu-vnc: all
 	$(QEMU) $(QEMUOPTS) -display vnc=$(QEMU_VNC_PORT)
 
 qemu-vnc-gdb: all
 	$(QEMU) $(QEMUOPTS) -display vnc=$(QEMU_VNC_PORT) -s -S
-
-qemu-gdb: all
-	$(QEMU) $(QEMUOPTS) -s -S
 
 clean:
 	@for dir in $(SUBMODULES);\
