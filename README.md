@@ -1,13 +1,33 @@
 ## Nico OS
-A mini os kernel.
+A mini and simple os kernel.
 
-## Kernel Implementation
-1. Memory Manager
-2. Kernel Thread & User Process
-3. Schedule
-4. File System(xv6)
-5. System Call
-6. Console
+## Build and run this
+
+### Prerequsites
+1. clang compiler
+2. llvm-lld(ld.lld)
+3. make
+4. qemu-system-i386
+
+You can get `llvm-lld` on the Debian:
+``` shell
+sudo apt-get install lld
+```
+
+### Build
+Enter the root directory of this project:
+```
+make all
+```
+
+### Run this project with `QEMU(i386)`
+```
+make qemu
+# make qemu-sdl
+# make qemu-gtk
+# make qemu-vnc
+# make qemu-curses
+```
 
 ## References
 [1] [xv6-public](https://github.com/mit-pdos/xv6-public)  
