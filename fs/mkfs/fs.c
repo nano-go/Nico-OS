@@ -1,8 +1,9 @@
-#include "disk.h"
 #include "fs.h"
+#include "disk.h"
 #include "superblock.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define bwrite(disk, buf, bno)                                                 \
 	write_sector((disk)->fp, (bno) * (BLOCK_SIZE / SECTOR_SIZE), buf,          \
@@ -26,7 +27,7 @@ uint32_t balloc(struct disk *disk) {
 		uint32_t bits = BITS_PER_BLOCK;
 		if (bits > bmap_bits) {
 			bits = bmap_bits;
-		}	
+		}
 		bread(disk, buf, bmap_block_no);
 		for (uint bit = 0; bit < bits; bit++) {
 			uint8_t m = 1 << (bit % 8);
@@ -40,11 +41,11 @@ uint32_t balloc(struct disk *disk) {
 				return dblock_no;
 			}
 		}
-		
+
 		bmap_bits -= bits;
 		bmap_block_no++;
 	}
-	
+
 	fprintf(stderr, "no data blocks.\n");
 	exit(1);
 	return 0;
@@ -93,7 +94,7 @@ static uint32_t bmap(struct disk *disk, struct inode *ip, uint32_t bn) {
 			ip->addrs[bn] = addr = balloc(disk);
 		}
 		return addr;
-	}	
+	}
 	bn -= NDIRECT_DATA_BLOCKS;
 	if (ip->addrs[NDIRECT_DATA_BLOCKS] == 0) {
 		ip->addrs[NDIRECT_DATA_BLOCKS] = balloc(disk);
@@ -111,11 +112,11 @@ void iappend(struct disk *disk, uint32_t inum, char *src, uint32_t sz) {
 	char buf[BLOCK_SIZE];
 	struct inode i;
 	uint32_t m, offset;
-	
+
 	iread(disk, &i, inum);
 	offset = i.size;
-	
-	for (uint32_t total = 0; total < sz; total += m, offset += m, src +=m) {
+
+	for (uint32_t total = 0; total < sz; total += m, offset += m, src += m) {
 		uint32_t bn = offset / BLOCK_SIZE;
 		uint32_t db_addr = bmap(disk, &i, bn);
 		bread(disk, buf, db_addr);
@@ -126,7 +127,7 @@ void iappend(struct disk *disk, uint32_t inum, char *src, uint32_t sz) {
 		memcpy(buf + (offset % BLOCK_SIZE), src, m);
 		bwrite(disk, buf, db_addr);
 	}
-	
+
 	i.size = offset;
 	iwrite(disk, &i, inum);
 }
@@ -145,7 +146,7 @@ void dir_link(struct disk *disk, uint32_t dirinum, char *name,
 void dir_make(struct disk *disk, uint32_t parentinum, uint32_t childinum) {
 	dir_link(disk, childinum, ".", childinum);
 	dir_link(disk, childinum, "..", parentinum);
-	
+
 	struct inode inode;
 	iread(disk, &inode, parentinum);
 	inode.nlink++;
