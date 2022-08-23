@@ -103,7 +103,7 @@ bool vm_copyout(struct vm *restrict vm, void *restrict dst, void *restrict src,
 				uint32_t sz);
 
 /**
- * Copy the byte @val to the first @n bytes of the pointer @vstart.
+ * Copy the byte @val to the first @n bytes of the pointer @dst.
  *
  * @see kernel/mem/pgtab.c#pgdir_setrange
  */
