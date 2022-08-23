@@ -1,6 +1,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -39,8 +40,9 @@ static inline void ckfwrite(void *buf, size_t sz, size_t num, FILE *fp) {
 }
 
 static inline size_t fsize(FILE *fp) {
+	uint32_t size;
 	fseek(fp, 0, SEEK_END);
-	uint32_t size = ftell(fp);
+	size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	return size;
 }
