@@ -226,7 +226,7 @@ bool pgdir_setrange(pgdir_t pgdir, void *vstart, char val, uint32_t n) {
 		if (rp == NULL) {
 			return false;
 		}
-		offset = (uint32_t) rp % PG_SIZE;
+		offset = (uint32_t) vp % PG_SIZE;
 		per = PG_SIZE - offset;
 		if (per > n - done) {
 			per = n - done;
