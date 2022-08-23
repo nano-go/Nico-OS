@@ -1,11 +1,10 @@
 #include "kernel/console.h"
-#include "kernel/semaphore.h"
-#include "kernel/keyboard.h"
-#include "kernel/defs.h"
 #include "fs/file.h"
-
-#include "stdio.h"
+#include "kernel/defs.h"
+#include "kernel/keyboard.h"
+#include "kernel/semaphore.h"
 #include "stdarg.h"
+#include "stdio.h"
 #include "string.h"
 
 #ifdef __cplusplus
@@ -34,15 +33,15 @@ static void console_readline() {
 		char ch;
 		int r = keyboard_read(&ch);
 		if (r <= 0) {
-			*p ++ = '\0';
+			*p++ = '\0';
 			break;
 		}
-		if ((uint32_t) (p - s) >= sizeof(inputbuf.buf)) {
+		if ((uint32_t)(p - s) >= sizeof(inputbuf.buf)) {
 			cprintf("Warn: the line buffer is full.\n");
 			break;
 		}
 		switch (ch) {
-			case '\n': 
+			case '\n':
 				put_char(ch);
 			case '\0': {
 				*p++ = ch;
@@ -62,7 +61,7 @@ static void console_readline() {
 			}
 		}
 	}
-	
+
 exit:
 	*p = '\0';
 	inputbuf.size = p - s;
@@ -73,8 +72,12 @@ static int console_read(struct inode *ip, char *str, int nbytes) {
 	if (nbytes <= 0) {
 		return 0;
 	}
-	
-	inode_unlock(ip); // Avoid deadlock.
+
+	// Avoid deadlock.
+	// When you lock the console file:
+	//     If a task is reading from console, other tasks can not write to
+	//     console, because the first task holding the lock of the console file.
+	inode_unlock(ip);
 	bool int_save;
 	spinlock_acquire(&clock, &int_save);
 
@@ -89,10 +92,10 @@ static int console_read(struct inode *ip, char *str, int nbytes) {
 	memcpy(str, &inputbuf.buf[inputbuf.p], size);
 	inputbuf.p += size;
 	inputbuf.size -= size;
-	
+
 	spinlock_release(&clock, &int_save);
 	inode_lock(ip);
-	
+
 	return size;
 }
 
@@ -103,7 +106,7 @@ static int console_write(struct inode *ip, char *str, int nbytes) {
 	bool int_save;
 	spinlock_acquire(&clock, &int_save);
 	for (int i = 0; i < nbytes; i++) {
-		put_char(*str ++);
+		put_char(*str++);
 	}
 	spinlock_release(&clock, &int_save);
 	return nbytes;
@@ -131,7 +134,7 @@ int cprintf(const char *fmt, ...) {
 
 void clear_screen() {
 	set_cursor(0);
-	for (int i = 0; i < 80*25; i++) {
+	for (int i = 0; i < 80 * 25; i++) {
 		put_char(' ');
 	}
 	set_cursor(0);

@@ -1,6 +1,6 @@
+#include "kernel/trap.h"
 #include "kernel/debug.h"
 #include "kernel/task.h"
-#include "kernel/trap.h"
 #include "kernel/x86.h"
 #include "kernel/x86_mmu.h"
 
@@ -24,17 +24,17 @@ extern "C" {
 
 /**
  * Interrupt Gate Descriptor Attrs Layout(16bits Low -> High):
- * Reversed       0-7      8bit     
+ * Reversed       0-7      8bit
  * TYPE           8-11     4bit     fixed 0b1110
  * S              12       1bit     fixed 0
- * DPL            13-14    2bit   
+ * DPL            13-14    2bit
  * P(Present)     15       1bit
  */
 
-#define IDT_DESC_P               (1      << 15)
-#define IDT_DESC_DPL_KERNEL      (0      << 13)
-#define IDT_DESC_DPL_USER        (3      << 13)
-#define IDT_DESC_TYPE_32         (0b1110 << 8)
+#define IDT_DESC_P			(1 << 15)
+#define IDT_DESC_DPL_KERNEL (0 << 13)
+#define IDT_DESC_DPL_USER	(3 << 13)
+#define IDT_DESC_TYPE_32	(0b1110 << 8)
 
 #define IDT_DESC_ATTR_DPL_KERNEL                                               \
 	(IDT_DESC_P | IDT_DESC_DPL_KERNEL | IDT_DESC_TYPE_32)

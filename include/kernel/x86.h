@@ -16,23 +16,23 @@ extern "C" {
 #define EFLAGS_IOPL3 (3 << 12)
 #define EFLAGS_IOPL0 (0 << 12)
 
-#define INT_LOCK(int_var)                                                    \
+#define INT_LOCK(int_var)                                                      \
 	do {                                                                       \
-		int_var = intr_is_enable();                                      \
-		intr_disable();                                                         \
+		int_var = intr_is_enable();                                            \
+		intr_disable();                                                        \
 	} while (0)
 
 #define INT_UNLOCK(int_var) intr_set_status(int_var)
 
 static inline void intr_set_status(bool int_save) {
-	if (int_save) {                                                          \
+	if (int_save) {
 		asm volatile("sti");
 	} else {
 		asm volatile("cli");
 	}
 }
 
-#define EFLAGS_IF_MASK      0x200
+#define EFLAGS_IF_MASK 0x200
 static inline bool intr_is_enable() {
 	uint32_t eflags;
 	asm volatile("pushfl; popl %0" : "=g"(eflags));
@@ -53,7 +53,7 @@ static inline void outb(uint16_t port, uint8_t data) {
 }
 
 static inline void outsw(uint16_t port, const void *addr, uint32_t cnt) {
-	asm volatile("cld; rep outsw" : "+S" (addr), "+c" (cnt) : "d" (port));
+	asm volatile("cld; rep outsw" : "+S"(addr), "+c"(cnt) : "d"(port));
 }
 
 static inline void outsl(uint16_t port, const void *addr, uint32_t cnt) {

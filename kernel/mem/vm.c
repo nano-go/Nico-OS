@@ -15,8 +15,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 struct vm {
-	pgdir_t pgdir;               // Page directory table.
-	void *brk;                   // User program break pointer.
+	pgdir_t pgdir; // Page directory table.
+	void *brk;	   // User program break pointer.
 	struct spinlock lock;
 };
 
@@ -74,7 +74,8 @@ bool vm_valloc(struct vm *vm, uint32_t vaddr, uint32_t pgcnt) {
 	return pgdir_valloc(vm->pgdir, vaddr, pgcnt, PG_RW_RW | PG_US_USER);
 }
 
-bool vm_load(struct vm *vm, void *dst, struct inode *ip, uint32_t off, uint32_t sz) {
+bool vm_load(struct vm *vm, void *dst, struct inode *ip, uint32_t off,
+			 uint32_t sz) {
 	struct vm *curvm = get_current_task()->vm;
 	if (curvm == vm) {
 		return inode_read(ip, dst, off, sz) >= 0;

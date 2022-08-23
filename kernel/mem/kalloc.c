@@ -89,13 +89,13 @@ void kfree(void *ptr) {
 	struct mem_block *fp = ptr - 1;
 	struct mem_block *prev = &fl_dummy;
 	struct mem_block *p = fl_dummy.next;
-	
+
 	if (p == NULL) {
 		prev->next = fp;
 		sem_signal(&kalloc_sem);
 		return;
 	}
-	
+
 	for (; p != NULL; prev = p, p = p->next) {
 		ASSERT(p->next == NULL || p < p->next);
 		if (fp > p && fp < p->next) {

@@ -27,13 +27,12 @@ extern "C" {
 #define PTE_NR(vaddr) ((((uint32_t)(vaddr)) >> PTE_NR_SHIFT) & 0x3FF)
 
 #define KERNEL_FIRST_PDE_NR ((KERNEL_BASE >> 20) / sizeof(pte_t))
-#define KERNEL_LAST_PDE_NR  ((VMEMOEY_TOP >> 20) / sizeof(pte_t) - 1)
-#define FREE_FIRST_PDE_NR   ((FREE_BASE   >> 20) / sizeof(pte_t))
-#define FREE_LAST_PDE_NR    ((FREE_TOP    >> 20) / sizeof(pte_t) - 1)
-#define USER_LAST_PDE_NR    ((KERNEL_BASE >> 20) / sizeof(pte_t) - 1)
+#define KERNEL_LAST_PDE_NR	((VMEMOEY_TOP >> 20) / sizeof(pte_t) - 1)
+#define FREE_FIRST_PDE_NR	((FREE_BASE >> 20) / sizeof(pte_t))
+#define FREE_LAST_PDE_NR	((FREE_TOP >> 20) / sizeof(pte_t) - 1)
+#define USER_LAST_PDE_NR	((KERNEL_BASE >> 20) / sizeof(pte_t) - 1)
 
-#define PG_VADDR(d, t, o)                                                      \
-	((uint32_t)(((d) << PDE_NR_SHIFT) | ((t) << PTE_NR_SHIFT) | (o)))
+#define PG_VADDR(d, t, o) ((uint32_t)(((d) << PDE_NR_SHIFT) | ((t) << PTE_NR_SHIFT) | (o)))
 
 #define PG_US(isuser) ((isuser) ? PG_US_USER : PG_US_SUPER)
 
@@ -46,7 +45,7 @@ static struct spinlock pgtab_lock;
 static pte_t *pte_ptr(pgdir_t pgdir, uint32_t vaddr) {
 	uint32_t pde_nr = PDE_NR(vaddr);
 	uint32_t pte_nr = PTE_NR(vaddr);
-	
+
 	pte_t *pgtab = KP2V(pgdir[pde_nr] & 0xFFFFF000);
 	return &pgtab[pte_nr];
 }
@@ -54,18 +53,18 @@ static pte_t *pte_ptr(pgdir_t pgdir, uint32_t vaddr) {
 static uint32_t v2p_addr(pgdir_t pgdir, uint32_t vaddr) {
 	uint32_t pde_nr = PDE_NR(vaddr);
 	uint32_t pte_nr = PTE_NR(vaddr);
-	
+
 	if (!PDE_IS_PRESENT(pgdir[pde_nr])) {
 		PANIC("pde is not present: vaddr 0x%x", vaddr);
 	}
 	pte_t *pgtab = KP2V(pgdir[pde_nr] & 0xFFFFF000);
-	if (!PTE_IS_PRESENT(pgtab[pte_nr]))  {
+	if (!PTE_IS_PRESENT(pgtab[pte_nr])) {
 		PANIC("pte is not present: vaddr 0x%x", vaddr);
 	}
 	return pgtab[pte_nr] & 0xFFFFF000;
 }
 
-void *page_frame_ptr(pgdir_t pgdir, void* vaddr) {
+void *page_frame_ptr(pgdir_t pgdir, void *vaddr) {
 	uint32_t pde_nr = PDE_NR(vaddr);
 	uint32_t pte_nr = PTE_NR(vaddr);
 	if (!PDE_IS_PRESENT(pgdir[pde_nr])) {
@@ -193,7 +192,7 @@ pgdir_t pgdir_copy(pgdir_t pgdir) {
 	if ((cp = pgdir_new()) == NULL) {
 		return NULL;
 	}
-	
+
 	for (uint pde_nr = 0; pde_nr <= USER_LAST_PDE_NR; pde_nr++) {
 		pde_t pde = pgdir[pde_nr];
 		if (!PDE_IS_PRESENT(pde)) {
@@ -204,7 +203,7 @@ pgdir_t pgdir_copy(pgdir_t pgdir) {
 			goto bad;
 		}
 		cp[pde_nr] = paddr | PG_RW_RW | PG_US_USER | PG_PRESENT;
-		
+
 		pte_t *src_pgtab = (pte_t *) KP2V(pde & 0xFFFFF000);
 		pte_t *dst_pgtab = (pte_t *) KP2V(paddr);
 
@@ -237,17 +236,24 @@ bool pgdir_setrange(pgdir_t pgdir, void *vstart, char val, uint32_t n) {
 	return true;
 }
 
+/**
+ * Map virtual: [0x80400000+1GB] -> physical: [0x00400000+1GB]
+ */
 void pgtab_init() {
 	spinlock_init(&pgtab_lock);
-	
-	// Map [0x80000000+1GB] -> [0x00000000+1GB]
-	uint32_t pgtabpaddr = 0x100000;
-	uint32_t paddr = 0x400000;
+
+	// The physical address of the first page table.
+	// You can know the memory layout(physical) from the "meomory.h".
+	uint32_t pgtab_paddr = 0x100000;
+
+	// Skip the kernel space, because it is mapped(in boot/setup.asm).
+	uint32_t paddr = KERNEL_SPACE_SIZE;
+
 	uint pde_nr;
 	for (pde_nr = FREE_FIRST_PDE_NR; pde_nr <= FREE_LAST_PDE_NR; pde_nr++) {
-		kpgdir[pde_nr] = pgtabpaddr | PG_US_SUPER | PG_RW_RW | PG_PRESENT;
-		pte_t *pgtab = KP2V(pgtabpaddr);
-		pgtabpaddr += PG_SIZE;
+		kpgdir[pde_nr] = pgtab_paddr | PG_US_SUPER | PG_RW_RW | PG_PRESENT;
+		pte_t *pgtab = KP2V(pgtab_paddr);
+		pgtab_paddr += PG_SIZE;
 		for (int pte_nr = 0; pte_nr < 1024; pte_nr++) {
 			pgtab[pte_nr] = paddr | PG_US_SUPER | PG_RW_RW | PG_PRESENT;
 			paddr += PG_SIZE;

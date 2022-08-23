@@ -1,7 +1,7 @@
+#include "kernel/task.h"
 #include "kernel/debug.h"
 #include "kernel/proc.h"
 #include "kernel/sched.h"
-#include "kernel/task.h"
 #include "kernel/timer.h"
 #include "kernel/trap.h"
 #include "kernel/x86.h"
@@ -74,9 +74,9 @@ static bool init_task_stack(struct task_struct *task, thread_fn entry_fn,
 
 		// The stack frame of the function "thread_entry"(above).
 
-		uint unused_eip;    // ret addr. fake PC.
+		uint unused_eip;	// ret addr. fake PC.
 		thread_fn entry_fn; // The first argument of "thread_entry".
-		void *data;         // The second argument of "thread_entry".
+		void *data;			// The second argument of "thread_entry".
 	} * stack;
 	uint32_t esp;
 
@@ -145,7 +145,7 @@ void task_free(struct task_struct *task) {
 
 	ASSERT(!list_find(&ready_queue, &task->ready_queue_node));
 	ASSERT(task->state != TASK_UNUSED);
-	
+
 	if (task->state != TASK_ZOMBIE && task->state != TASK_ALLOCATED) {
 		PANIC("you can not free a running task");
 	}
@@ -275,7 +275,7 @@ pid_t task_wait(int *status) {
 			spinlock_release(&tblock, &int_save);
 			return -1;
 		}
-		
+
 		cur->state = TASK_WAITING;
 		schedule();
 		spinlock_release(&tblock, &int_save);

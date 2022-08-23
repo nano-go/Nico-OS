@@ -35,7 +35,7 @@ void bio_init() {
 
 	bcache.head.next = &bcache.head;
 	bcache.head.prev = &bcache.head;
-	
+
 	for (struct buf *b = bcache.bufs; b < bcache.bufs + NBUF; b++) {
 		sem_init(&b->sem, 1, "block_cache");
 		b->refcnt = 0;
@@ -72,7 +72,7 @@ static struct buf *buf_get(struct disk *disk, uint32_t block_no) {
 			return b;
 		}
 	}
-	
+
 	spinlock_release(&bcache.lock, &int_save);
 	PANIC("buf_get: no buffers");
 	return NULL;
@@ -94,7 +94,7 @@ void buf_write(struct buf *buf) {
 
 void buf_release(struct buf *buf) {
 	bool int_save;
-	
+
 	sem_signal(&buf->sem);
 	spinlock_acquire(&bcache.lock, &int_save);
 
@@ -106,7 +106,6 @@ void buf_release(struct buf *buf) {
 
 	spinlock_release(&bcache.lock, &int_save);
 }
-
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -3,7 +3,7 @@
 
 void *memset(void *dst, uint8_t value, uint32_t count) {
 	char *s = dst;
-	while (count --) {
+	while (count--) {
 		*s++ = value;
 	}
 	return dst;
@@ -41,12 +41,11 @@ uint32_t strlen(const char *str) {
 }
 
 char *strcpy(char *dst, const char *src) {
-	while ((*dst++ = *src++) != '\0')
-		/* nothing */;
+	while ((*dst++ = *src++) != '\0') /* nothing */;
 	return --dst;
 }
 
-char* strstr(const char *haystack, const char *needle) {
+char *strstr(const char *haystack, const char *needle) {
 	uint32_t len1, len2;
 	len2 = strlen(needle);
 	if (len2 == 0) {
@@ -55,7 +54,7 @@ char* strstr(const char *haystack, const char *needle) {
 	len1 = strlen(haystack);
 	while (len1 >= len2) {
 		if (memcmp(haystack, needle, len2) == 0) {
-			return (char *)haystack;
+			return (char *) haystack;
 		}
 		len1--;
 		haystack++;
@@ -93,8 +92,8 @@ char *strcat(char *dst, const char *src) {
 	while (*dst) {
 		dst++;
 	}
-	while ((*dst++ = *src++) != '\0')
-		/* nothing */;
+	while ((*dst++ = *src++) != '\0') /* nothing */
+		;
 	return tmp;
 }
 
@@ -103,7 +102,7 @@ char *strncat(char *dst, const char *src, uint32_t n) {
 	while (*dst) {
 		dst++;
 	}
-	while (n-- != 0 && (*dst++ = *src++) != '\0')
-		/* nothing */;
+	while (n-- != 0 && (*dst++ = *src++) != '\0') /* nothing */
+		;
 	return tmp;
 }
