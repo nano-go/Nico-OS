@@ -35,7 +35,7 @@ $(OS_IMAGE_FILE): compile_all_modules
 # Make file system and write all user procs to the fs image.
 $(FS_IMAGE_FILE): compile_all_modules $(MKFS) $(USER_PROCS)
 	$(SH) ./make_fs_img.sh || exit 1;
-	$(MKFS) $@ $(USER_PROCS)
+	$(MKFS) -i $@ --ish ./init/init.sh $(USER_PROCS)
 
 $(MKFS):
 	$(MAKE) -C ./fs/mkfs all || exit 1;
