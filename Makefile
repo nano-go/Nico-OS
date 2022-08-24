@@ -12,8 +12,8 @@ SUBMODULES += objs
 BOCHS = bochs
 QEMU = qemu-system-i386
 QEMUOPTS := -m 36 -smp 1\
-						-drive format=raw,file=nico_os.img,media=disk\
-						-drive format=raw,file=hd80MB.img,media=disk
+						-drive format=raw,file=$(OS_IMAGE_FILE),media=disk\
+						-drive format=raw,file=$(FS_IMAGE_FILE),media=disk
 QEMU_VNC_PORT = 127.0.0.1:1
 
 .PHONY: all qemu qemu-vnc bochs clean
@@ -40,31 +40,31 @@ $(FS_IMAGE_FILE): compile_all_modules $(MKFS) $(USER_PROCS)
 $(MKFS):
 	$(MAKE) -C ./fs/mkfs all || exit 1;
 
-bochs: all
+bochs: 
 	if [ ! -e bochsrc ];\
 		then ! echo "Bochs needs the configuration file: bochsrc" && exit 1;\
 	fi
 	$(BOCHS) -f bochsrc
 
-qemu: all
+qemu:
 	$(QEMU) $(QEMUOPT)
 
-qemu-gdb: all
+qemu-gdb:
 	$(QEMU) $(QEMUOPTS) -s -S
 
-qemu-sdl: all
+qemu-sdl:
 	$(QEMU) $(QEMUOPTS) -display sdl
 
-qemu-gtk: all
+qemu-gtk:
 	$(QEMU) $(QEMUOPTS) -display gtk
 
-qemu-curses: all
+qemu-curses:
 	$(QEMU) $(QEMUOPTS) -display curses
 
-qemu-vnc: all
+qemu-vnc: 
 	$(QEMU) $(QEMUOPTS) -display vnc=$(QEMU_VNC_PORT)
 
-qemu-vnc-gdb: all
+qemu-vnc-gdb:
 	$(QEMU) $(QEMUOPTS) -display vnc=$(QEMU_VNC_PORT) -s -S
 
 clean:
