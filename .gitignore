@@ -15,3 +15,5 @@ backup.config.json
 
 mmkfs
 init/init
+lib/objs/libc
+compile_commands.json
