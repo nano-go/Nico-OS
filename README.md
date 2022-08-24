@@ -1,22 +1,26 @@
 ## Nico OS
-A mini and simple os kernel.
+A unix-like operating system.
+
+## Feature
+Nico-OS provides some common commands and a shell that supports pipeline and I/O redirection.
 
 ## Build and run this
 
-### Prerequsites
+### Prerequisites
 1. clang compiler
 2. llvm-lld(ld.lld)
 3. make
 4. qemu-system-i386
 
-You can get `llvm-lld` on the Debian:
+You can get `llvm-lld` by your package manager:
 ``` shell
 sudo apt-get install lld
 ```
 
 ### Build
-Enter the root directory of this project:
 ```
+git clone https://github.com/nano-go/Nico-OS.git
+cd Nico-OS
 make all
 ```
 
