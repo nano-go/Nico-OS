@@ -1,6 +1,6 @@
 #include "stdlib.h"
 #include "stdint.h"
-#include "kernel/debug.h"
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {

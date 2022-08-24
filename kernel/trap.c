@@ -10,14 +10,12 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define SETUP_IGATE(gate_desc, vec_entry, _attrs)                              \
-	do {                                                                       \
-		(gate_desc)->entry_offset_low =                                        \
-			(uint16_t)((uint32_t)(vec_entry) &0x0000FFFF);                     \
-		(gate_desc)->entry_offset_high =                                       \
-			(uint16_t)((uint32_t)(vec_entry) >> 16);                           \
-		(gate_desc)->attrs = _attrs;                                           \
-		(gate_desc)->entry_cs = SYS_CODE_SELECTOR;                             \
+#define SETUP_IGATE(gate_desc, vec_entry, _attrs)                                                  \
+	do {                                                                                           \
+		(gate_desc)->entry_offset_low = (uint16_t)((uint32_t)(vec_entry) &0x0000FFFF);             \
+		(gate_desc)->entry_offset_high = (uint16_t)((uint32_t)(vec_entry) >> 16);                  \
+		(gate_desc)->attrs = _attrs;                                                               \
+		(gate_desc)->entry_cs = SYS_CODE_SELECTOR;                                                 \
 	} while (0)
 
 #define IDT_VECTORS_NR 256
@@ -36,11 +34,9 @@ extern "C" {
 #define IDT_DESC_DPL_USER	(3 << 13)
 #define IDT_DESC_TYPE_32	(0b1110 << 8)
 
-#define IDT_DESC_ATTR_DPL_KERNEL                                               \
-	(IDT_DESC_P | IDT_DESC_DPL_KERNEL | IDT_DESC_TYPE_32)
+#define IDT_DESC_ATTR_DPL_KERNEL (IDT_DESC_P | IDT_DESC_DPL_KERNEL | IDT_DESC_TYPE_32)
 
-#define IDT_DESC_ATTR_DPL_USER                                                 \
-	(IDT_DESC_P | IDT_DESC_DPL_USER | IDT_DESC_TYPE_32)
+#define IDT_DESC_ATTR_DPL_USER (IDT_DESC_P | IDT_DESC_DPL_USER | IDT_DESC_TYPE_32)
 
 const char *exception_names[20] = {
 	"Divde Error",
@@ -99,9 +95,8 @@ void general_trap(struct trap_frame *tf) {
 
 static void exception_handler(struct trap_frame *tf) {
 	struct task_struct *task = get_current_task();
-	printk("task \"%s\"(pid %d): \"%s\" error: eip: 0x%x, addr: 0x%x\n",
-		   task->name, task->pid, exception_names[tf->intr_nr], tf->eip,
-		   rcr2());
+	printk("task \"%s\"(pid %d): \"%s\" error: eip: 0x%x, addr: 0x%x\n", task->name, task->pid,
+		   exception_names[tf->intr_nr], tf->eip, rcr2());
 	if ((tf->cs & 3) == 0) {
 		PANIC("unexpected exception.");
 	}

@@ -67,8 +67,7 @@ static void thread_entry(thread_fn entry_fn, void *data) {
 	PANIC("exit");
 }
 
-static bool init_task_stack(struct task_struct *task, thread_fn entry_fn,
-							void *data) {
+static bool init_task_stack(struct task_struct *task, thread_fn entry_fn, void *data) {
 	struct entry_stack_frame {
 		struct context context;
 
@@ -102,8 +101,8 @@ static bool init_task_stack(struct task_struct *task, thread_fn entry_fn,
 	return true;
 }
 
-static void init_task_struct(struct task_struct *task, uint32_t priority,
-							 const char *namefmt, va_list args) {
+static void init_task_struct(struct task_struct *task, uint32_t priority, const char *namefmt,
+							 va_list args) {
 	vsprintf(task->name, namefmt, args);
 	task->time_slice = priority;
 	task->priority = priority;
@@ -117,8 +116,8 @@ static void init_task_struct(struct task_struct *task, uint32_t priority,
 	}
 }
 
-struct task_struct *kthread_create(thread_fn fn, void *data, uint32_t priority,
-								   const char *namefmt, ...) {
+struct task_struct *kthread_create(thread_fn fn, void *data, uint32_t priority, const char *namefmt,
+								   ...) {
 	struct task_struct *task = task_alloc();
 	if (task != NULL) {
 		va_list args;
