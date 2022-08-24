@@ -296,8 +296,8 @@ write_descriptor:
 ;
 ; Description
 ;     Setup the page directory table(V->P):
-;       0x00000000-0x00040000 -> 0x00000000-0x00040000 (4MB, Temp)
-;       0x08000000-0x08040000 -> 0x00000000-0x00040000 (4MB)
+;       0x00000000-0x00400000 -> 0x00000000-0x00400000 (4MB, Temp)
+;       0x80000000-0x80400000 -> 0x00000000-0x00400000 (4MB)
 ;
 ; Memory Layout
 ;     Name            Address                    Memory Space
