@@ -16,7 +16,7 @@ extern "C" {
 static char symbol[] = "<>&|;()";
 static char whitespace[] = " \n\r\t\f";
 
-#define peek(sh) ((sh)->peek.type)
+#define peek(sh)	((sh)->peek.type)
 #define advance(sh) scan_tok(sh)
 static enum token_type scan_tok(struct sh_executor *sh);
 
@@ -26,8 +26,7 @@ static struct cmd *parse_binary(struct sh_executor *sh);
 static struct cmd *parse_redir(struct sh_executor *sh);
 static struct cmd *parse_primary(struct sh_executor *sh);
 static struct cmd *parse_execcmd(struct sh_executor *sh);
-static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left,
-								  enum token_type tok);
+static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left, enum token_type tok);
 
 static inline bool match(struct sh_executor *sh, enum token_type type) {
 	if (peek(sh) == type) {
@@ -53,7 +52,7 @@ bool sh_readline(struct sh_executor *sh) {
 			break;
 		}
 		if (ch <= 0) {
-			if (*p == 0 && p == sh->buf) {
+			if (p == sh->buf) {
 				return false;
 			}
 			break;
@@ -138,7 +137,7 @@ static struct cmd *parse_binary(struct sh_executor *sh) {
 		cmd_free(left);
 		return NULL;
 	}
-	if (operator == TOKEN_PIPE) {
+	if (operator== TOKEN_PIPE) {
 		return (struct cmd *) cmd_newpipe(left, right);
 	} else {
 		return (struct cmd *) cmd_newbinary(left, right, operator);
@@ -200,8 +199,7 @@ static struct cmd *parse_primary(struct sh_executor *sh) {
 /**
  * Redircmd := TOK_STRING
  */
-static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left,
-								  enum token_type optok) {
+static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left, enum token_type optok) {
 	if (peek(sh) != TOKEN_STRING) {
 		sh->report_error(sh, "sh: expected the file path.");
 		cmd_free(left);
@@ -223,8 +221,7 @@ static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left,
 		default:
 			PANIC("Unreachable\n");
 	}
-	struct redir_cmd *cmd =
-		cmd_newredir(left, fd, sh->peek.p, sh->peek.len, mode);
+	struct redir_cmd *cmd = cmd_newredir(left, fd, sh->peek.p, sh->peek.len, mode);
 	advance(sh);
 	return (struct cmd *) cmd;
 }
@@ -243,7 +240,7 @@ static struct cmd *parse_execcmd(struct sh_executor *sh) {
 			sh->report_error(sh, "sh: too many arguments.");
 			goto bad;
 		}
-		if ((cmd->argv[argc ++] = copy_peek_string(sh)) == NULL) {
+		if ((cmd->argv[argc++] = copy_peek_string(sh)) == NULL) {
 			goto bad;
 		}
 		advance(sh); // consume string token.
@@ -274,8 +271,6 @@ static char *copy_peek_string(struct sh_executor *sh) {
 	*dst = 0;
 	return s;
 }
-
-
 
 
 // Lexer
@@ -319,7 +314,7 @@ static enum token_type scan_tok(struct sh_executor *sh) {
 		typ = TOKEN_EOF;
 		goto exit;
 	}
-	char ch = *p ++;
+	char ch = *p++;
 	switch (ch) {
 		case '>': {
 			if (*p == '>') {
@@ -364,7 +359,7 @@ static enum token_type scan_tok(struct sh_executor *sh) {
 			typ = TOKEN_SEMI;
 			break;
 		}
-		case '#': {  // Ignore comment.
+		case '#': { // Ignore comment.
 			while (*p != 0 && *p != '\n' && *p != '\r') {
 				p++;
 			}
