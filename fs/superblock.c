@@ -5,7 +5,7 @@
 #include "kernel/debug.h"
 #include "string.h"
 
-#include "include/superblock_pri.h"
+#include "include/superblock.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -18,15 +18,15 @@ static void print_inode_usage(struct disk *disk, struct superblock *sb) {
 	struct buf *buf;
 	struct dinode *dip;
 	uint32_t inum;
-	
+
 	printk("\nInodes in use: \n");
 	// inum = 1: inum 0 is the NULL inode.
 	for (inum = 1; inum < sb->ninodes; inum++) {
 		buf = buf_read(disk, GET_INODE_BLOCK_NO(inum, *sb));
 		dip = (struct dinode *) buf->data + (inum % INODES_PER_BLOCK);
 		if (dip->type != INODE_NONE) {
-			printk("(inum: %d, type: %d, size: %d, major: %d), ", inum,
-				   dip->type, dip->size, dip->major);
+			printk("(inum: %d, type: %d, size: %d, major: %d), ", inum, dip->type, dip->size,
+				   dip->major);
 		}
 		buf_release(buf);
 	}
@@ -38,16 +38,16 @@ static void print_data_bitmap(struct disk *disk, struct superblock *sb) {
 	uint32_t bmap_bits = sb->bmap_bytes * 8;
 	uint32_t bmap_block_no = sb->bmap_start;
 	uint32_t bit_nt = 0;
-	
+
 	printk("\nData blocks in use: \n");
 	while (bmap_bits > 0) {
 		uint32_t bits = BITS_PER_BLOCK;
 		if (bits > bmap_bits) {
 			bits = bmap_bits;
 		}
-		
+
 		buf = buf_read(disk, bmap_block_no);
-		for (uint bit = 0; bit < bits; bit++, bit_nt ++) {
+		for (uint bit = 0; bit < bits; bit++, bit_nt++) {
 			uint8_t m = 1 << (bit % 8);
 			if ((buf->data[bit / 8] & m) != 0) {
 				printk("%d, ", bit_nt);
@@ -64,19 +64,18 @@ static void print_data_bitmap(struct disk *disk, struct superblock *sb) {
 // For debugging.
 void print_superblock(struct disk *disk, struct superblock *sb, bool details) {
 	printk("Superblock in the disk %s:\n", disk->name);
-	
+
 	printk("    Inodes:                %d\n", sb->ninodes);
 	printk("    Inode Block Range:     [%d, %d]\n", sb->inode_start,
 		   sb->inode_start + ROUND_UP(sb->ninodes, INODES_PER_BLOCK));
-		   
+
 	printk("    Log Blocks:            %d\n", sb->nlog);
-	printk("    Log Block Range:       [%d, %d]\n", sb->log_start,
-		   sb->log_start + sb->nlog);
-	
+	printk("    Log Block Range:       [%d, %d]\n", sb->log_start, sb->log_start + sb->nlog);
+
 	printk("    Data BMap Bytes:       %d (Bytes)\n", sb->bmap_bytes);
 	printk("    Data BMap Range:       [%d, %d]\n", sb->bmap_start,
 		   sb->bmap_start + ROUND_UP(sb->bmap_bytes, BLOCK_SIZE));
-	
+
 	printk("    Data Blocks:           %d\n", sb->nblocks);
 	printk("    Data Block Start:      %d (Block Number)\n", sb->bdata_start);
 

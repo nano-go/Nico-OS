@@ -3,7 +3,7 @@
 #include "kernel/task.h"
 #include "string.h"
 
-#include "include/inodes_pri.h"
+#include "include/inode.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -12,15 +12,11 @@ extern "C" {
 #endif /* __cplusplus */
 
 /**
- * The array is used to check whether a name is valid. 
+ * The array is used to check whether a name is valid.
  */
-static bool invalid_charset[256] = {
-	['/'] = 1, [0x7F] = 1
-};
-
+static bool invalid_charset[256] = {['/'] = 1, [0x7F] = 1};
 
 char *path_skipelem(char *path, char *name) {
-
 	while (*path == '/') {
 		path++;
 	}
@@ -49,7 +45,7 @@ void path_parent(char *path, char *parent, char *name) {
 		memcpy(parent, p, path - p);
 		parent += path - p;
 		p = path;
-				
+
 		do {
 			*name++ = *path++;
 		} while (*path != '\0' && *path != '/');
@@ -59,11 +55,10 @@ void path_parent(char *path, char *parent, char *name) {
 }
 
 
-static struct inode *path_lookup0(struct disk *disk, char *path,
-								  bool nameiparent, char *name) {
+static struct inode *path_lookup0(struct disk *disk, char *path, bool nameiparent, char *name) {
 	struct inode *parent;
 	struct inode *next;
-	
+
 	if (*path == '/') {
 		parent = iget(disk, ROOT_INUM);
 		path++;
@@ -78,7 +73,7 @@ static struct inode *path_lookup0(struct disk *disk, char *path,
 			inode_unlockput(parent);
 			return NULL;
 		}
-		
+
 		while (*path == '/') {
 			path++;
 		}
@@ -86,26 +81,26 @@ static struct inode *path_lookup0(struct disk *disk, char *path,
 			inode_unlock(parent);
 			return parent;
 		}
-		
+
 		next = dir_lookup(parent, name, NULL);
 		if (next == NULL) {
 			inode_unlockput(parent);
 			return NULL;
 		}
-		
+
 		inode_unlockput(parent);
 		parent = next;
 	}
-	
+
 	if (nameiparent) {
 		inode_put(parent);
 		return NULL;
 	}
-	
+
 	return parent;
 }
 
-struct inode *path_lookup(struct disk *disk, char *path) {	
+struct inode *path_lookup(struct disk *disk, char *path) {
 	char name[DIRENT_NAME_LENGTH];
 	return path_lookup0(disk, path, false, name);
 }
@@ -128,7 +123,7 @@ bool path_valid_name(char *name) {
 		if (*name <= 31) {
 			return false;
 		}
-		if (invalid_charset[(uint8_t) (*name)]) {
+		if (invalid_charset[(uint8_t)(*name)]) {
 			return false;
 		}
 		name++;

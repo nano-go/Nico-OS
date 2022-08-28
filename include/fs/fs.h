@@ -19,9 +19,6 @@ extern "C" {
 uint32_t get_free_data_blocks(struct disk *disk);
 uint32_t get_free_inodes(struct disk *disk);
 
-uint32_t balloc(struct disk *disk);
-void bfree(struct disk *disk, uint32_t dblock_no);
-
 void fs_init();
 
 #ifdef __cplusplus

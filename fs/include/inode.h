@@ -1,5 +1,5 @@
-#ifndef _INODES_PRI_H
-#define _INODES_PRI_H
+#ifndef _INODE_H
+#define _INODE_H
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -15,4 +15,4 @@ struct inode *iget(struct disk *disk, uint32_t inum);
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* _INODES_PRI_H */
+#endif /* _INODE_H */

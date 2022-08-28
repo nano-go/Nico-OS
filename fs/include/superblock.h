@@ -1,5 +1,5 @@
-#ifndef _SUPERBLOCK_PRI_H
-#define _SUPERBLOCK_PRI_H
+#ifndef _SUPERBLOCK_H
+#define _SUPERBLOCK_H
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -13,7 +13,7 @@ extern "C" {
 #ifndef NDEBUG
 void print_superblock(struct disk *disk, struct superblock *sb, bool details);
 #else
-# define print_superblock(disk, sb, details) ((void *) 0)
+#define print_superblock(disk, sb, details) ((void *) 0)
 #endif /* ndebug */
 
 #ifdef __cplusplus
@@ -22,4 +22,4 @@ void print_superblock(struct disk *disk, struct superblock *sb, bool details);
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* _SUPERBLOCK_PRI_H */
+#endif /* _SUPERBLOCK_H */

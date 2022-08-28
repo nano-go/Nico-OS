@@ -1,7 +1,7 @@
 #include "fs/dir.h"
 #include "string.h"
 
-#include "include/inodes_pri.h"
+#include "include/inode.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -16,7 +16,7 @@ struct inode *dir_lookup(struct inode *dir, char *name, uint32_t *off) {
 	ASSERT(strlen(name) <= DIRENT_NAME_LENGTH);
 	ASSERT((dp->size % sizeof(struct dirent) == 0));
 	ASSERT(inode_holding(dir));
-	
+
 	for (uint offset = 0; offset < dp->size; offset += sizeof(struct dirent)) {
 		struct dirent dirent;
 		int n = inode_read(dir, &dirent, offset, sizeof dirent);
@@ -38,7 +38,7 @@ struct inode *dir_lookup(struct inode *dir, char *name, uint32_t *off) {
 int dir_link(struct inode *dir, struct dirent *new_dirent) {
 	struct inode *ip;
 	struct dinode *dp = &dir->disk_inode;
-	
+
 	ASSERT(dp->type == INODE_DIRECTORY);
 	ASSERT(new_dirent != NULL);
 	ASSERT(new_dirent->inum != 0);
@@ -50,7 +50,7 @@ int dir_link(struct inode *dir, struct dirent *new_dirent) {
 		return -1;
 	}
 
-	uint offset; 
+	uint offset;
 	int n;
 	// Find an empty directory entry.
 	for (offset = 0; offset < dp->size; offset += n) {
@@ -60,7 +60,7 @@ int dir_link(struct inode *dir, struct dirent *new_dirent) {
 			return -1;
 		}
 		ASSERT(n == sizeof(dirent));
-		if (dirent.inum == 0) { 
+		if (dirent.inum == 0) {
 			// found.
 			break;
 		}
@@ -76,7 +76,7 @@ int dir_link(struct inode *dir, struct dirent *new_dirent) {
 
 int dir_unlink(struct inode *dir, uint32_t offset) {
 	struct dirent dirent;
-	
+
 	ASSERT(inode_holding(dir));
 	ASSERT(dir->disk_inode.type == INODE_DIRECTORY);
 	ASSERT(dir->disk_inode.size > offset);
@@ -94,17 +94,17 @@ int dir_unlink(struct inode *dir, uint32_t offset) {
 int dir_isempty(struct inode *dir) {
 	struct dirent dirent;
 	struct dinode *dp = &dir->disk_inode;
-	
+
 	ASSERT(dp->type == INODE_DIRECTORY);
 	ASSERT(inode_holding(dir));
-	
-	uint offset; 
+
+	uint offset;
 	int n;
-	for (offset = sizeof(dirent)*2; offset < dp->size; offset += n) {
+	for (offset = sizeof(dirent) * 2; offset < dp->size; offset += n) {
 		struct dirent dirent;
 		n = inode_read(dir, &dirent, offset, sizeof dirent);
 		if (n < 0) {
-			return -1;
+			return true;
 		}
 		ASSERT(n == sizeof(dirent));
 		if (dirent.inum != 0) {
@@ -115,26 +115,26 @@ int dir_isempty(struct inode *dir) {
 }
 
 int dir_make(struct inode *parent, struct inode *dir) {
-	struct dirent diren;
+	struct dirent dirent;
 
 	ASSERT(inode_holding(parent) && inode_holding(dir));
 	ASSERT(parent->disk_inode.type == INODE_DIRECTORY);
 	ASSERT(dir->disk_inode.type == INODE_DIRECTORY);
-	
-	diren.inum = dir->inum;
-	strcpy(diren.name, ".");
-	if (dir_link(dir, &diren) < 0) {
+
+	dirent.inum = dir->inum;
+	strcpy(dirent.name, ".");
+	if (dir_link(dir, &dirent) < 0) {
 		return -1;
 	}
-	
-	diren.inum = parent->inum;
-	strcpy(diren.name, "..");
-	if (dir_link(dir, &diren) < 0) {
+
+	dirent.inum = parent->inum;
+	strcpy(dirent.name, "..");
+	if (dir_link(dir, &dirent) < 0) {
 		return -1;
 	}
-	
+
 	// '..' links to parent.
-	parent->disk_inode.nlink ++;
+	parent->disk_inode.nlink++;
 	inode_update(parent);
 	return 0;
 }
