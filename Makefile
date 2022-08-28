@@ -38,7 +38,7 @@ $(FS_IMAGE_FILE): compile_all_modules $(MKFS) $(USER_PROCS)
 	$(MKFS) -i $@ --ish ./init/init.sh $(USER_PROCS)
 
 $(MKFS):
-	$(MAKE) -C ./fs/mkfs all || exit 1;
+	$(MAKE) -C ./mkfs all || exit 1;
 
 bochs: 
 	if [ ! -e bochsrc ];\
@@ -80,6 +80,6 @@ clean:
 	@for dir in $(SUBMODULES);\
 		do $(MAKE) -C $$dir clean;\
 	done
-	$(MAKE) -C fs/mkfs clean
+	$(MAKE) -C mkfs clean
 	$(RM) $(OS_IMAGE_FILE)
 	$(RM) $(FS_IMAGE_FILE)
