@@ -12,128 +12,138 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-struct mem_block {
-	struct mem_block *next;
-	uint32_t size; // the unit is sizeof(struct mem_block)
+#define NBLOCK		 7
+#define MAX_OBJ_SIZE (16 << ((NBLOCK) -1))
+
+typedef long aligned;
+
+struct mem_object_desc {
+	union {
+		struct mem_object_desc *next;
+		uint32_t block_idx;
+		aligned aligned;
+	};
 };
 
+struct mem_block {
+	uint block_idx;
+	uint obj_size;
+	uint inuse;
+	uint free;
+	uint num;
+	struct mem_object_desc *head;
+};
 
-// This is the dummy node of the free list.
-static struct mem_block fl_dummy;
+static struct mem_block blocks[NBLOCK];
 static struct semaphore kalloc_sem;
 
+static bool alloc_new_objs(struct mem_block *block) {
+	ASSERT(block->head == NULL);
+	const uint size = block->obj_size + sizeof(struct mem_object_desc);
+	struct mem_object_desc dummy;
+	struct mem_object_desc *prev = &dummy;
+	uint cnt = 0;
+
+	void *page = get_zeroed_free_page();
+	if (page == NULL) {
+		return false;
+	}
+
+	for (uint p = 0; p < PG_SIZE; p += size, cnt++) {
+		struct mem_object_desc *next = (struct mem_object_desc *) (page + p);
+		prev->next = next;
+		prev = next;
+	}
+
+	block->free += cnt;
+	block->num += cnt;
+	block->head = dummy.next;
+	return true;
+}
+
+static void *fetch_obj_from_block(struct mem_block *block) {
+	struct mem_object_desc *obj = NULL;
+	if (block->free == 0 && !alloc_new_objs(block)) {
+		return NULL;
+	}
+	obj = block->head;
+	block->head = block->head->next;
+	block->free--;
+	block->inuse++;
+	obj->block_idx = block->block_idx;
+	return obj + 1;
+}
+
 void kalloc_init() {
-	fl_dummy.size = 0;
-	fl_dummy.next = NULL;
+	uint obj_size = 16;
+	for (int i = 0; i < NBLOCK; i++) {
+		struct mem_block *block = &blocks[i];
+		block->block_idx = i;
+		block->head = NULL;
+		block->inuse = 0;
+		block->free = 0;
+		block->num = 0;
+		block->obj_size = obj_size;
+		obj_size <<= 1;
+	}
 	sem_init(&kalloc_sem, 1, "kalloc");
 }
 
 void *kalloc(uint32_t nbytes) {
+	void *r = NULL;
 	if (nbytes == 0) {
-		return NULL;
-	}
-	ASSERT(nbytes <= PG_SIZE);
-	sem_wait(&kalloc_sem);
-	if (get_current_task()->killed) {
-		sem_signal(&kalloc_sem);
-		return NULL;
+		return r;
 	}
 
-	uint32_t nunits = ROUND_UP(nbytes, sizeof(struct mem_block)) + 1;
-	struct mem_block *prev = &fl_dummy;
-	struct mem_block *bp = fl_dummy.next;
-	for (;;) {
-		if (bp == NULL) {
-			uint32_t pg_cnt =
-				ROUND_UP(nunits * sizeof(struct mem_block), PG_SIZE);
-			bp = get_free_page();
-			if (bp == NULL) {
-				sem_signal(&kalloc_sem);
-				return NULL;
-			}
-			bp->next = NULL;
-			bp->size = (PG_SIZE * pg_cnt) / sizeof(struct mem_block);
-			if (prev + prev->size == bp) {
-				prev->size += bp->size;
-				bp = prev;
-			} else {
-				prev->next = bp;
-			}
-		}
-		if (bp->size >= nunits) {
-			if (bp->size == nunits) {
-				prev->next = bp->next;
-			} else {
-				bp->size -= nunits;
-				bp += bp->size;
-				bp->size = nunits;
-				bp->next = NULL;
-			}
-			sem_signal(&kalloc_sem);
-			return bp + 1;
-		}
-		prev = bp, bp = bp->next;
+	ASSERT(nbytes < PG_SIZE);
+	sem_wait(&kalloc_sem);
+	if (get_current_task()->killed) {
+		goto exit;
 	}
+
+	if (nbytes > MAX_OBJ_SIZE) {
+		r = get_zeroed_free_page();
+		goto exit;
+	}
+
+	for (int i = 0; i < NBLOCK; i++) {
+		struct mem_block *block = &blocks[i];
+		if (block->obj_size >= nbytes) {
+			r = fetch_obj_from_block(block);
+			if (r == NULL) {
+				continue;
+			}
+			goto exit;
+		}
+	}
+
+exit:
+	sem_signal(&kalloc_sem);
+	return r;
 }
 
 void kfree(void *ptr) {
+	struct mem_block *block;
+	struct mem_object_desc *obj;
+
 	if (ptr == NULL) {
 		return;
 	}
+
 	sem_wait(&kalloc_sem);
 	if (get_current_task()->killed) {
-		sem_signal(&kalloc_sem);
-		return;
+		goto exit;
 	}
 
-	struct mem_block *fp = ptr - 1;
-	struct mem_block *prev = &fl_dummy;
-	struct mem_block *p = fl_dummy.next;
+	obj = (struct mem_object_desc *) (ptr - sizeof(struct mem_object_desc));
+	block = &blocks[obj->block_idx];
 
-	if (p == NULL) {
-		prev->next = fp;
-		sem_signal(&kalloc_sem);
-		return;
-	}
+	obj->next = block->head;
+	block->head = obj;
+	block->inuse--;
+	block->free++;
 
-	for (; p != NULL; prev = p, p = p->next) {
-		ASSERT(p->next == NULL || p < p->next);
-		if (fp > p && fp < p->next) {
-			// fp in [p, p->next].
-			break;
-		}
-		if (fp < p || p->next == NULL) {
-			// fp at start/end of the arena.
-			break;
-		}
-	}
-
-	if (fp < p) {
-		if (fp + fp->size == p) {
-			fp->size += p->size;
-			fp->next = p->next;
-			prev->next = fp;
-		} else {
-			prev->next = fp;
-			fp->next = p;
-		}
-		sem_signal(&kalloc_sem);
-		return;
-	}
-
-	if (fp + fp->size == p->next) {
-		fp->size += p->next->size;
-		fp->next = p->next->next;
-	} else {
-		fp->next = p->next;
-	}
-
-	if (p + p->size == fp) {
-		p->size += fp->size;
-		p->next = fp->next;
-	} else {
-		p->next = fp;
-	}
+exit:
 	sem_signal(&kalloc_sem);
 }
 
