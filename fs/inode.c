@@ -1,14 +1,14 @@
-#include "fs/inodes.h"
 #include "fs/dir.h"
 #include "fs/file.h"
 #include "fs/fs.h"
+#include "fs/inodes.h"
 #include "fs/log.h"
 #include "fs/pathname.h"
 #include "kernel/buf.h"
 #include "string.h"
 
 #include "include/balloc.h"
-#include "include/inodes.h"
+#include "include/inode.h"
 #include "include/superblock.h"
 
 #ifdef __cplusplus
