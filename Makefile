@@ -55,11 +55,20 @@ qemu-gdb:
 qemu-sdl:
 	$(QEMU) $(QEMUOPTS) -display sdl
 
+qemu-sdl-gdb:
+	$(QEMU) $(QEMUOPTS) -display sdl -s -S
+
 qemu-gtk:
 	$(QEMU) $(QEMUOPTS) -display gtk
 
+qemu-gtk-gdb:
+	$(QEMU) $(QEMUOPTS) -display gtk -s -S
+
 qemu-curses:
 	$(QEMU) $(QEMUOPTS) -display curses
+
+qemu-curses-gdb:
+	$(QEMU) $(QEMUOPTS) -display curses -s -S
 
 qemu-vnc: 
 	$(QEMU) $(QEMUOPTS) -display vnc=$(QEMU_VNC_PORT)
