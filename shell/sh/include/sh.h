@@ -11,33 +11,44 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define PANIC(msg)                                                             \
-	do {                                                                       \
-		printf("File: %s\nFunc: %s\nLine: %d\nMsg: %s", __FILE__, __func__,         \
-			   __LINE__, msg);                                                 \
-		while (1)                                                              \
-			;                                                                  \
+#define PANIC(msg)                                                                                 \
+	do {                                                                                           \
+		printf("File: %s\nFunc: %s\nLine: %d\nMsg: %s", __FILE__, __func__, __LINE__, msg);        \
+		while (1)                                                                                  \
+			;                                                                                      \
 	} while (false)
 
 #define LINE_BUF_SIZE 2048
-struct sh_executor {
-	char buf[LINE_BUF_SIZE]; // Line buffer.
-	char *p;                 // Current char pointer to the line buffer.
-	struct token peek;       // Current lexer token.
-	int input_fd;		    // Read from the file.
+
+struct shell_ex {
+	char buf[LINE_BUF_SIZE]; // Command line buffer.
+	char *p;				 // Current char pointer to the buffer.
+	int lineno;				 // Line number: count of newlines seen so far(from 1).
+	struct token peek;		 // Current lexer token.
+	bool eof;				 // True if the parser fails to read or read eof from the instream.
+	int instream;			 // Read from the input stream.
 	bool is_interactive;
 
-	void (*report_error)(struct sh_executor *, char *, ...);
+	void (*report_error)(struct shell_ex *, char *, ...);
 };
 
-void sh_init(struct sh_executor *, int input_fd, bool is_interactive);
+void sh_init(struct shell_ex *, int input_fd, bool is_interactive);
+
+/**
+ * Read source code from the instream to the buffer.
+ *
+ * @return the exit code:
+ *           code is -1: the buffer is not empty. The source code in the buffer to be parsed.
+ *           code is  0: the buffer is empty, and the instream is closed(read eof).
+ *           code >=  1: syntax error. e.g: unterminated string quote.
+ */
+int sh_read_to_buf(struct shell_ex *);
 
 // sh_parser.c
-bool sh_readline(struct sh_executor *);
-struct cmd *sh_parse(struct sh_executor *);
+struct cmd *sh_parse(struct shell_ex *);
 
 // sh_exec.c
-int sh_execcmd(struct sh_executor *, struct cmd *);
+int sh_execcmd(struct shell_ex *, struct cmd *);
 
 
 #ifdef __cplusplus

@@ -12,7 +12,7 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-static bool forkexec(struct sh_executor *sh, struct cmd *cmd, int *status, bool inback) {
+static bool forkexec(struct shell_ex *sh, struct cmd *cmd, int *status, bool inback) {
 	int pid = fork();
 	if (!pid) {
 		sh_execcmd(sh, cmd);
@@ -27,7 +27,7 @@ static bool forkexec(struct sh_executor *sh, struct cmd *cmd, int *status, bool 
 	return false;
 }
 
-int sh_execcmd(struct sh_executor *sh, struct cmd *cmd) {
+int sh_execcmd(struct shell_ex *sh, struct cmd *cmd) {
 	char pathbuf[128] = "/bin/";
 	if (cmd == NULL) {
 		exit(0);
@@ -49,7 +49,7 @@ int sh_execcmd(struct sh_executor *sh, struct cmd *cmd) {
 			printf("sh: cmd %s not found!\n", c->argv[0]);
 			break;
 		}
-		
+
 		case CMD_REDIR: {
 			struct redir_cmd *c = (struct redir_cmd *) cmd;
 			close(c->fd);
@@ -61,20 +61,20 @@ int sh_execcmd(struct sh_executor *sh, struct cmd *cmd) {
 			sh_execcmd(sh, c->cmd);
 			break;
 		}
-		
+
 		case CMD_LIST: {
 			struct list_cmd *c = (struct list_cmd *) cmd;
 			forkexec(sh, c->left, NULL, false);
 			sh_execcmd(sh, c->right);
 			break;
 		}
-		
+
 		case CMD_BACK: {
 			struct back_cmd *c = (struct back_cmd *) cmd;
 			forkexec(sh, c->cmd, NULL, true);
 			break;
 		}
-		
+
 		case CMD_PIPE: {
 			struct pipe_cmd *c = (struct pipe_cmd *) cmd;
 			int fds[2];
@@ -133,7 +133,7 @@ int sh_execcmd(struct sh_executor *sh, struct cmd *cmd) {
 			break;
 		}
 	}
-	
+
 	exit(1);
 	return 0;
 }

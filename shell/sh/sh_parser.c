@@ -11,24 +11,43 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define ERR_UNEXPECTED_CH "sh: unexpected '%c'."
+#define ERR_UNEXPECTED_CH "unexpected '%c'."
 
 static char symbol[] = "<>&|;()";
 static char whitespace[] = " \n\r\t\f";
 
 #define peek(sh)	((sh)->peek.type)
 #define advance(sh) scan_tok(sh)
-static enum token_type scan_tok(struct sh_executor *sh);
+static enum token_type scan_tok(struct shell_ex *sh);
 
-static struct cmd *parse_cmd(struct sh_executor *sh);
-static struct cmd *parse_list(struct sh_executor *sh);
-static struct cmd *parse_binary(struct sh_executor *sh);
-static struct cmd *parse_redir(struct sh_executor *sh);
-static struct cmd *parse_primary(struct sh_executor *sh);
-static struct cmd *parse_execcmd(struct sh_executor *sh);
-static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left, enum token_type tok);
+static struct cmd *parse_cmd(struct shell_ex *sh);
+static struct cmd *parse_list(struct shell_ex *sh);
+static struct cmd *parse_binary(struct shell_ex *sh);
+static struct cmd *parse_redir(struct shell_ex *sh);
+static struct cmd *parse_primary(struct shell_ex *sh);
+static struct cmd *parse_execcmd(struct shell_ex *sh);
+static struct cmd *parse_redircmd(struct shell_ex *sh, struct cmd *left, enum token_type tok);
 
-static inline bool match(struct sh_executor *sh, enum token_type type) {
+static char *copy_peek_string(struct shell_ex *sh) {
+	char *dst = malloc(sh->peek.len + 1);
+	if (dst == NULL) {
+		sh->report_error(sh, "out of memory.");
+		return NULL;
+	}
+	char *s = dst;
+	char *src = sh->peek.p, *end = src + sh->peek.len;
+	while (src != end) {
+		if (*src == '\\' && (src + 1) != end) {
+			// escape \a -> a
+			src++;
+		}
+		*dst++ = *src++;
+	}
+	*dst = 0;
+	return s;
+}
+
+static inline bool match(struct shell_ex *sh, enum token_type type) {
 	if (peek(sh) == type) {
 		advance(sh);
 		return true;
@@ -36,37 +55,10 @@ static inline bool match(struct sh_executor *sh, enum token_type type) {
 	return false;
 }
 
-bool sh_readline(struct sh_executor *sh) {
-	memset(sh->buf, 0, LINE_BUF_SIZE);
-	char *p = sh->buf;
-	char *end = p + LINE_BUF_SIZE - 1;
-	while (p != end) {
-		int ch = getc(sh->input_fd);
-		if (ch == '\n') {
-			if (p != sh->buf && *(p - 1) == '\\') {
-				// here we just use '\' to read multiple lines.
-				p--;
-				continue;
-			}
-			*p++ = (char) ch;
-			break;
-		}
-		if (ch <= 0) {
-			if (p == sh->buf) {
-				return false;
-			}
-			break;
-		}
-		*p++ = (char) ch;
-	}
-	*p = 0;
-	return true;
-}
-
 /**
  * S := Cmd TOK_EOF
  */
-struct cmd *sh_parse(struct sh_executor *sh) {
+struct cmd *sh_parse(struct shell_ex *sh) {
 	sh->p = sh->buf;
 	advance(sh);
 	struct cmd *cmd = parse_cmd(sh);
@@ -84,7 +76,7 @@ struct cmd *sh_parse(struct sh_executor *sh) {
 /**
  * Cmd := [ List ]
  */
-static struct cmd *parse_cmd(struct sh_executor *sh) {
+static struct cmd *parse_cmd(struct shell_ex *sh) {
 	if (peek(sh) == TOKEN_LPAREN || peek(sh) == TOKEN_STRING) {
 		return parse_list(sh);
 	}
@@ -94,7 +86,7 @@ static struct cmd *parse_cmd(struct sh_executor *sh) {
 /**
  * List := Binary [ ( ";" | "&" ) Cmd ]
  */
-static struct cmd *parse_list(struct sh_executor *sh) {
+static struct cmd *parse_list(struct shell_ex *sh) {
 	struct cmd *left, *right;
 	left = parse_binary(sh);
 	if (left == NULL) {
@@ -117,7 +109,7 @@ static struct cmd *parse_list(struct sh_executor *sh) {
 /**
  * Binary := Redir [ ( "|" | "&&" | "||" ) Binary ]
  */
-static struct cmd *parse_binary(struct sh_executor *sh) {
+static struct cmd *parse_binary(struct shell_ex *sh) {
 	struct cmd *left = parse_redir(sh);
 	if (left == NULL) {
 		return NULL;
@@ -147,7 +139,7 @@ static struct cmd *parse_binary(struct sh_executor *sh) {
 /**
  * Redir := Primary ( ( ">>" | ">" | "<" ) Redircmd )*
  */
-static struct cmd *parse_redir(struct sh_executor *sh) {
+static struct cmd *parse_redir(struct shell_ex *sh) {
 	struct cmd *cmd = parse_primary(sh);
 	if (cmd == NULL) {
 		return NULL;
@@ -170,38 +162,12 @@ static struct cmd *parse_redir(struct sh_executor *sh) {
 	}
 }
 
-
-/**
- * Primary := ( "(" Cmd ")" ) | Execcmd
- */
-static struct cmd *parse_primary(struct sh_executor *sh) {
-	struct cmd *cmd = NULL;
-	switch (peek(sh)) {
-		case TOKEN_LPAREN:
-			advance(sh);
-			cmd = parse_cmd(sh);
-			if (!match(sh, TOKEN_RPAREN)) {
-				cmd_free(cmd);
-				sh->report_error(sh, "sh: missing ')'.");
-				return NULL;
-			}
-			break;
-		case TOKEN_STRING:
-			cmd = parse_execcmd(sh);
-			break;
-		default:
-			sh->report_error(sh, ERR_UNEXPECTED_CH, *sh->peek.p);
-			return NULL;
-	}
-	return cmd;
-}
-
 /**
  * Redircmd := TOK_STRING
  */
-static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left, enum token_type optok) {
+static struct cmd *parse_redircmd(struct shell_ex *sh, struct cmd *left, enum token_type optok) {
 	if (peek(sh) != TOKEN_STRING) {
-		sh->report_error(sh, "sh: expected the file path.");
+		sh->report_error(sh, "expected the file path.");
 		cmd_free(left);
 		return NULL;
 	}
@@ -221,23 +187,48 @@ static struct cmd *parse_redircmd(struct sh_executor *sh, struct cmd *left, enum
 		default:
 			PANIC("Unreachable\n");
 	}
-	struct redir_cmd *cmd = cmd_newredir(left, fd, sh->peek.p, sh->peek.len, mode);
+	char *redir_to_f = copy_peek_string(sh);
+	struct redir_cmd *cmd = cmd_newredir(left, fd, mode, redir_to_f, strlen(redir_to_f));
+	free(redir_to_f);
 	advance(sh);
 	return (struct cmd *) cmd;
 }
 
 
-static char *copy_peek_string(struct sh_executor *sh);
+/**
+ * Primary := ( "(" Cmd ")" ) | Execcmd
+ */
+static struct cmd *parse_primary(struct shell_ex *sh) {
+	struct cmd *cmd = NULL;
+	switch (peek(sh)) {
+		case TOKEN_LPAREN:
+			advance(sh);
+			cmd = parse_cmd(sh);
+			if (!match(sh, TOKEN_RPAREN)) {
+				cmd_free(cmd);
+				sh->report_error(sh, "missing ')'.");
+				return NULL;
+			}
+			break;
+		case TOKEN_STRING:
+			cmd = parse_execcmd(sh);
+			break;
+		default:
+			sh->report_error(sh, ERR_UNEXPECTED_CH, *sh->peek.p);
+			return NULL;
+	}
+	return cmd;
+}
 
 /**
  * Execcmd := TOK_STRING ( TOK_STRING )*
  */
-static struct cmd *parse_execcmd(struct sh_executor *sh) {
+static struct cmd *parse_execcmd(struct shell_ex *sh) {
 	struct exec_cmd *cmd = cmd_newexec();
 	int argc = 0;
 	do {
 		if (argc >= MAX_ARGV - 1) {
-			sh->report_error(sh, "sh: too many arguments.");
+			sh->report_error(sh, "too many arguments.");
 			goto bad;
 		}
 		if ((cmd->argv[argc++] = copy_peek_string(sh)) == NULL) {
@@ -253,29 +244,10 @@ bad:
 	return NULL;
 }
 
-static char *copy_peek_string(struct sh_executor *sh) {
-	char *dst = malloc(sh->peek.len + 1);
-	if (dst == NULL) {
-		sh->report_error(sh, "sh: out of memory.");
-		return NULL;
-	}
-	char *s = dst;
-	char *src = sh->peek.p, *end = src + sh->peek.len;
-	while (src != end) {
-		if (*src == '\\' && (src + 1) != end) {
-			// escape \a -> a
-			src++;
-		}
-		*dst++ = *src++;
-	}
-	*dst = 0;
-	return s;
-}
-
 
 // Lexer
 
-static void skip_whitespace(struct sh_executor *sh) {
+static void skip_whitespace(struct shell_ex *sh) {
 	char *p = sh->p;
 	for (;;) {
 		switch (*p) {
@@ -305,7 +277,24 @@ static char *read_string(char *p) {
 	return p;
 }
 
-static enum token_type scan_tok(struct sh_executor *sh) {
+static char *read_string_with_quotes(char *p, const char close_quote) {
+	while (*p != 0) {
+		char ch = *p++;
+		if (ch == close_quote) {
+			return p;
+		}
+		if (ch == '\\' && close_quote == '"') {
+			// Only escape character in double-quotes.
+			if (*p == 0) {
+				break;
+			}
+			p++;
+		}
+	}
+	return p;
+}
+
+static enum token_type scan_tok(struct shell_ex *sh) {
 	skip_whitespace(sh);
 
 	enum token_type typ;
@@ -365,6 +354,16 @@ static enum token_type scan_tok(struct sh_executor *sh) {
 			}
 			sh->p = p;
 			return scan_tok(sh);
+		}
+		case '"':
+		case '\'': {
+			p = read_string_with_quotes(p, ch);
+			sh->peek.type = TOKEN_STRING;
+			// prune quotes.
+			sh->peek.len = p - sh->p - 2;
+			sh->peek.p = sh->p + 1;
+			sh->p = p;
+			return TOKEN_STRING;
 		}
 		default: {
 			typ = TOKEN_STRING;

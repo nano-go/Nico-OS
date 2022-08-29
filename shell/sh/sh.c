@@ -9,17 +9,20 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-static void default_report_error(struct sh_executor *sh, char *str, ...) {
+static void default_report_error(struct shell_ex *sh, char *str, ...) {
 	va_list args;
+	fprintf(stdout, "sh: ");
 	va_start(args, str);
 	vfprintf(stdout, str, args);
 	va_end(args);
 }
 
-void sh_init(struct sh_executor *sh, int input_fd, bool is_interactive) {
+void sh_init(struct shell_ex *sh, int instream, bool is_interactive) {
 	sh->report_error = default_report_error;
-	sh->input_fd = input_fd;
+	sh->instream = instream;
 	sh->is_interactive = is_interactive;
+	sh->lineno = 1;
+	sh->eof = false;
 }
 
 #ifdef __cplusplus

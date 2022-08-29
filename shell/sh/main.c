@@ -7,15 +7,19 @@
 #include "string.h"
 #include "syscall.h"
 
-static void shloop(struct sh_executor *sh) {
+static void shloop(struct shell_ex *sh) {
+	int scanner_code;
+	struct cmd *cmd;
 	for (;;) {
 		if (sh->is_interactive) {
 			printf("\n$ ");
-		}		
-		if (!sh_readline(sh)) {
-			exit(0); // read EOF.
-		}		
-		struct cmd *cmd = sh_parse(sh);
+			sh->lineno = 1;
+		}
+		scanner_code = sh_read_to_buf(sh);
+		if (scanner_code >= 0) {
+			exit(scanner_code);
+		}
+		cmd = sh_parse(sh);
 		if (cmd == NULL) {
 			continue;
 		}
@@ -54,7 +58,7 @@ static int open_scriptfile(char *filename) {
 }
 
 int main(int argc, char **argv) {
-	struct sh_executor sh;
+	struct shell_ex sh;
 	if (argc == 1) {
 		sh_init(&sh, stdin, true);
 	} else {
