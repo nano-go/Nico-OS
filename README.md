@@ -1,5 +1,5 @@
 ## Nico OS
-A unix-like operating system.
+A Unix-like operating system.
 
 ## Feature
 Nico-OS provides some common commands and a shell that supports pipeline and I/O redirection.
@@ -36,4 +36,5 @@ make qemu
 ## References
 [1] [xv6-public](https://github.com/mit-pdos/xv6-public)  
 [2] Remzi H. Arpaci-Dusseau & Andrea C. Arpaci-Dusseau. (2018). *Operating System: Three Easy Pieces*  
-[3] 郑钢. 《操作系统真象还原》. 2016.
+[3] 郑钢. 《操作系统真象还原》. 2016.  
+[4] 李忠, 王晓波, 余洁. 《x86汇编语言:从实模式到保护模式》. 2013.
