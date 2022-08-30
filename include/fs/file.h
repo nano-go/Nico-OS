@@ -13,30 +13,30 @@ extern "C" {
 #endif /* __cplusplus */
 
 enum fd_type {
-	FD_NONE,
-	FD_INODE,
-	FD_PIPE,
+    FD_NONE,
+    FD_INODE,
+    FD_PIPE,
 };
 
 struct pipe;
 
 struct file {
-	enum fd_type type;
-	uint32_t refs;
-	bool writable;
-	bool readable;
-	struct inode *inode;
-	struct pipe *pipe;
-	uint32_t offset;
+    enum fd_type type;
+    uint32_t refs;
+    bool writable;
+    bool readable;
+    struct inode *inode;
+    struct pipe *pipe;
+    uint32_t offset;
 };
 
 struct devio {
-	int (*read) (struct inode *, char *, int);
-	int (*write) (struct inode *, char *, int);
+    int (*read)(struct inode *, char *, int);
+    int (*write)(struct inode *, char *, int);
 };
 
 extern struct devio devio[];
-#define NDEVICE 1
+#define NDEVICE     1
 #define DEV_CONSOLE 1
 
 

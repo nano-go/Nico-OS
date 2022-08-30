@@ -1,8 +1,8 @@
 #ifndef _SH_BUILTIN_CMDS_H
 #define _SH_BUILTIN_CMDS_H
 
-#include "stdbool.h"
 #include "cmds.h"
+#include "stdbool.h"
 
 #ifdef __cplusplus
 #if __cplusplus

@@ -16,27 +16,27 @@ extern "C" {
  */
 
 struct spinlock {
-	uint32_t locked;
+    uint32_t locked;
 };
 static inline void spinlock_init(struct spinlock *lock) {
-	lock->locked = 0;
+    lock->locked = 0;
 }
 
 static inline void spinlock_lock(struct spinlock *lock) {
-	(void) 0;
+    (void) 0;
 }
 static inline void spinlock_unlock(struct spinlock *lock) {
-	(void) 0;
+    (void) 0;
 }
 
 static inline void spinlock_acquire(struct spinlock *lock, bool *int_save) {
-	INT_LOCK(*int_save);
-	spinlock_lock(lock);
+    INT_LOCK(*int_save);
+    spinlock_lock(lock);
 }
 
 static inline void spinlock_release(struct spinlock *lock, bool *int_save) {
-	spinlock_unlock(lock);
-	INT_UNLOCK(*int_save);
+    spinlock_unlock(lock);
+    INT_UNLOCK(*int_save);
 }
 
 #ifdef __cplusplus

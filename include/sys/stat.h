@@ -6,10 +6,10 @@
 #define T_DEVICE 3
 
 struct stat {
-	short st_type;
-	unsigned int st_ino;
-	unsigned int st_size;
-	short st_nlink;
+    short st_type;
+    unsigned int st_ino;
+    unsigned int st_size;
+    short st_nlink;
 };
 
 #endif /* _SYS_STAT_H */

@@ -6,13 +6,13 @@
 #ifdef NDEBUG
 #define ASSERT(CONDITION) ((void) 0);
 #else
-#define ASSERT(CONDITION)                                                      \
-	do {                                                                       \
-		if (CONDITION) {                                                       \
-		} else {                                                               \
-			PANIC(#CONDITION);                                                 \
-		}                                                                      \
-	} while (0)
+#define ASSERT(CONDITION)                                                                          \
+    do {                                                                                           \
+        if (CONDITION) {                                                                           \
+        } else {                                                                                   \
+            PANIC(#CONDITION);                                                                     \
+        }                                                                                          \
+    } while (0)
 #endif /* NDEBUF */
 
 void printk(const char *format, ...);

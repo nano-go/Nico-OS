@@ -1,9 +1,9 @@
 #ifndef _KERNEL_TYPEDEF_H
 #define _KERNEL_TYPEDEF_H
 
+#include "stdbool.h"
 #include "stddef.h"
 #include "stdint.h"
-#include "stdbool.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -11,7 +11,7 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define ROUND_UP(X, STEP) (((X) + (STEP) - 1) / (STEP))
+#define ROUND_UP(X, STEP) (((X) + (STEP) -1) / (STEP))
 
 // These are defined in "kernel.lds"
 extern char stext[];

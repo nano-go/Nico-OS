@@ -24,34 +24,33 @@ struct buf;
  * system(FS).
  */
 struct disk {
-	char name[8];
+    char name[8];
 
-	uint32_t dev_no;
+    uint32_t dev_no;
 
-	/**
-	 * The ide channel contains this disk.
-	 */
-	struct ide_channel *ide_chan;
+    /**
+     * The ide channel contains this disk.
+     */
+    struct ide_channel *ide_chan;
 
-	/**
-	 * Use a superblock to store the information of FS. 
-	 */
-	struct superblock *sb;
+    /**
+     * Use a superblock to store the information of FS.
+     */
+    struct superblock *sb;
 
-	/**
-	 * Use a log to ensure the atomic operations of file data.
-	 */
-	struct log *log;
-
+    /**
+     * Use a log to ensure the atomic operations of file data.
+     */
+    struct log *log;
 };
 
 struct ide_channel {
-	char name[8];
-	uint8_t ide_chan_id;
-	uint16_t port_base;
-	uint8_t irq_no;
-	struct disk devices[2];
-	struct semaphore sem;
+    char name[8];
+    uint8_t ide_chan_id;
+    uint16_t port_base;
+    uint8_t irq_no;
+    struct disk devices[2];
+    struct semaphore sem;
 };
 
 void ide_init();

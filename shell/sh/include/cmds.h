@@ -12,57 +12,57 @@ extern "C" {
 #define MAX_ARGV 20
 
 enum cmd_type {
-	CMD_EXEC,
-	CMD_REDIR,
-	CMD_LIST,
-	CMD_BACK,
-	CMD_PIPE,
-	CMD_BINARY,
+    CMD_EXEC,
+    CMD_REDIR,
+    CMD_LIST,
+    CMD_BACK,
+    CMD_PIPE,
+    CMD_BINARY,
 };
 
 #define CMD_HEADER enum cmd_type type;
 
 struct cmd {
-	CMD_HEADER;
+    CMD_HEADER;
 };
 
 struct exec_cmd {
-	CMD_HEADER;
-	int argc;
-	char *argv[MAX_ARGV];
+    CMD_HEADER;
+    int argc;
+    char *argv[MAX_ARGV];
 };
 
 struct redir_cmd {
-	CMD_HEADER;
-	struct cmd *cmd;
-	int fd;		 // close fd
-	int mode;	 // file flags.
-	char file[]; // open the file;
+    CMD_HEADER;
+    struct cmd *cmd;
+    int fd;      // close fd
+    int mode;    // file flags.
+    char file[]; // open the file;
 };
 
 struct list_cmd {
-	CMD_HEADER;
-	struct cmd *left;
-	struct cmd *right;
+    CMD_HEADER;
+    struct cmd *left;
+    struct cmd *right;
 };
 
 // run cmd in background.
 struct back_cmd {
-	CMD_HEADER;
-	struct cmd *cmd;
+    CMD_HEADER;
+    struct cmd *cmd;
 };
 
 struct pipe_cmd {
-	CMD_HEADER;
-	struct cmd *left;
-	struct cmd *right;
+    CMD_HEADER;
+    struct cmd *left;
+    struct cmd *right;
 };
 
 struct binary_cmd {
-	CMD_HEADER;
-	struct cmd *left;
-	struct cmd *right;
-	enum token_type operator;
+    CMD_HEADER;
+    struct cmd *left;
+    struct cmd *right;
+    enum token_type operator;
 };
 
 struct exec_cmd *cmd_newexec();

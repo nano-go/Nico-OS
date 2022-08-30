@@ -22,39 +22,39 @@ extern "C" {
 #endif /* __cplusplus */
 
 static void init_all() {
-	intr_disable();
-	
-	mmu_init();
-	trap_init();
-	iopic_init();
-	mem_init();
-	task_init();
-	timer_init();
-	syscall_init();
-	
-	bio_init();
-	ide_init();
-	fs_init();
-	console_init();
-	keyboard_init();
-	
-	clear_screen();
-	intr_enable();
+    intr_disable();
+
+    mmu_init();
+    trap_init();
+    iopic_init();
+    mem_init();
+    task_init();
+    timer_init();
+    syscall_init();
+
+    bio_init();
+    ide_init();
+    fs_init();
+    console_init();
+    keyboard_init();
+
+    clear_screen();
+    intr_enable();
 }
 
 void kernel_start(void) {
-	init_all();
-	
+    init_all();
+
 #ifdef KERNEL_TEST
 #include "test/test_main.h"
-	start_test_thread();
+    start_test_thread();
 #else
-	setup_init_proc();
+    setup_init_proc();
 #endif
 
-	for (;;) {
-		task_block();
-	}
+    for (;;) {
+        task_block();
+    }
 }
 
 #ifdef __cplusplus

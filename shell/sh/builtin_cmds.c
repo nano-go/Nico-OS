@@ -13,36 +13,35 @@ extern "C" {
 static void sh_cd(int argc, char **argv);
 
 bool is_builtin_cmd(struct cmd *cmd) {
-	if (cmd->type == CMD_EXEC) {
-		struct exec_cmd *execcmd = (struct exec_cmd *) cmd;
-		if (strcmp("cd", execcmd->argv[0]) == 0) {
-			return true;
-		}
-	}
-	return false;
+    if (cmd->type == CMD_EXEC) {
+        struct exec_cmd *execcmd = (struct exec_cmd *) cmd;
+        if (strcmp("cd", execcmd->argv[0]) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int exec_builtin_cmd(struct cmd *cmd) {
-	if (cmd->type == CMD_EXEC) {
-		struct exec_cmd *execcmd = (struct exec_cmd *) cmd;
-		if (strcmp("cd", execcmd->argv[0]) == 0) {
-			sh_cd(execcmd->argc, execcmd->argv);
-			return 0;
-		}
-	}
-
-	return -1;
+    if (cmd->type == CMD_EXEC) {
+        struct exec_cmd *execcmd = (struct exec_cmd *) cmd;
+        if (strcmp("cd", execcmd->argv[0]) == 0) {
+            sh_cd(execcmd->argc, execcmd->argv);
+            return 0;
+        }
+    }
+    return -1;
 }
 
 static void sh_cd(int argc, char **argv) {
-	char *path = "/";
-	if (argc > 1) {
-		path = argv[1];
-	}
-	if (chdir(path) < 0) {
-		printf("cd: no such directory: %s\n", path);
-		return;
-	}
+    char *path = "/";
+    if (argc > 1) {
+        path = argv[1];
+    }
+    if (chdir(path) < 0) {
+        printf("cd: no such directory: %s\n", path);
+        return;
+    }
 }
 
 #ifdef __cplusplus

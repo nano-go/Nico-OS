@@ -1,9 +1,9 @@
 #ifndef _FS_LOG_H
 #define _FS_LOG_H
 
+#include "kernel/defs.h"
 #include "kernel/ide.h"
 #include "kernel/semaphore.h"
-#include "kernel/defs.h"
 
 /**
  * The log is the file system module that is used to make all operations
@@ -27,7 +27,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 #define MAX_OPEN_BLOCKS 10
-#define LOG_SIZE (MAX_OPEN_BLOCKS * 3)
+#define LOG_SIZE        (MAX_OPEN_BLOCKS * 3)
 
 /**
  * The on-disk log layout:
@@ -41,20 +41,20 @@ extern "C" {
  */
 
 struct logheader {
-	int n;
-	uint blocks[LOG_SIZE];
+    int n;
+    uint blocks[LOG_SIZE];
 };
 
 struct log {
-	struct spinlock lock;
-	
-	struct semaphore wait_sem;    // Semphore used to block log_begin_op().
-	struct disk *disk;            // Disk device.
-	int log_start;                // First block number of log.
-	int outstanding;              // How many operations are executing.
-	bool committing;              // In commit()?
-	
-	struct logheader lh;
+    struct spinlock lock;
+
+    struct semaphore wait_sem; // Semphore used to block log_begin_op().
+    struct disk *disk;         // Disk device.
+    int log_start;             // First block number of log.
+    int outstanding;           // How many operations are executing.
+    bool committing;           // In commit()?
+
+    struct logheader lh;
 };
 
 void log_begin_op(struct log *);

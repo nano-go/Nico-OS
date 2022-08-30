@@ -17,13 +17,13 @@ extern struct spinlock tblock;
 extern struct list ready_queue;
 
 #define FIRST_TASK (&task_table[0])
-#define LAST_TASK (&task_table[NTASK-1])
+#define LAST_TASK  (&task_table[NTASK - 1])
 
 static inline void set_current_task(struct task_struct *t) {
-	bool int_save;
-	INT_LOCK(int_save);
-	current_task = t;
-	INT_UNLOCK(int_save);
+    bool int_save;
+    INT_LOCK(int_save);
+    current_task = t;
+    INT_UNLOCK(int_save);
 }
 
 #ifdef __cplusplus

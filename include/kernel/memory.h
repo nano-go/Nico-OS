@@ -41,17 +41,17 @@ extern "C" {
  *   USER_BASE..USER_TOP:      user area(see proc.h)
  */
 
-#define PHY_MEMORY_TOP	  (1024 * 1024 * 1024)
+#define PHY_MEMORY_TOP    (1024 * 1024 * 1024)
 #define KERNEL_SPACE_SIZE (1024 * 1024 * 4)
 
 #define KERNEL_BASE 0x80000000
 #define VMEMOEY_TOP (KERNEL_BASE + PHY_MEMORY_TOP)
-#define FREE_BASE	(KERNEL_BASE + KERNEL_SPACE_SIZE)
-#define FREE_TOP	VMEMOEY_TOP
-#define USER_BASE	0x04048000
-#define USER_TOP	KERNEL_BASE
+#define FREE_BASE   (KERNEL_BASE + KERNEL_SPACE_SIZE)
+#define FREE_TOP    VMEMOEY_TOP
+#define USER_BASE   0x04048000
+#define USER_TOP    KERNEL_BASE
 
-#define KERNEL_LINK			  0x80030000 // The kernel.bin will be loaded here.
+#define KERNEL_LINK           0x80030000 // The kernel.bin will be loaded here.
 #define MAX_FREE_MEMORY_SPACE (PHY_MEMORY_TOP - KERNEL_SPACE_SIZE)
 
 #define KV2P(vaddr) ((void *) ((uint32_t)(vaddr) -KERNEL_BASE))
@@ -139,9 +139,9 @@ void *vm_grow_userheap(struct vm *vm, int32_t bytes_cnt);
 void *get_free_page();
 void free_page(void *page);
 static inline void *get_zeroed_free_page() {
-	void *ptr = get_free_page();
-	memset(ptr, 0, PG_SIZE);
-	return ptr;
+    void *ptr = get_free_page();
+    memset(ptr, 0, PG_SIZE);
+    return ptr;
 }
 
 void *kalloc(uint32_t nbytes);

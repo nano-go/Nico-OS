@@ -36,8 +36,7 @@ struct inode *path_lookup(struct disk *disk, char *pathname);
 /**
  * Look up the parent inode for @pathname and copy final path element into @name.
  */
-struct inode *path_lookup_parent(struct disk *disk, char *pathname,
-								 char *name);
+struct inode *path_lookup_parent(struct disk *disk, char *pathname, char *name);
 #ifdef __cplusplus
 #if __cplusplus
 }

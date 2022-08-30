@@ -18,20 +18,20 @@ extern "C" {
 #define LBA_TO_BLOCK_NO(lba) ((lba) / (BLOCK_SIZE / SECTOR_SIZE))
 
 struct buf {
-	int flags;
-	struct disk *disk;
-	struct semaphore sem;
-	uint32_t block_no;
-	uint32_t refcnt;
-	struct buf *prev;
-	struct buf *next;
-	struct buf *qnext;
-	uint8_t data[BLOCK_SIZE];
+    int flags;
+    struct disk *disk;
+    struct semaphore sem;
+    uint32_t block_no;
+    uint32_t refcnt;
+    struct buf *prev;
+    struct buf *next;
+    struct buf *qnext;
+    uint8_t data[BLOCK_SIZE];
 };
 
 void bio_init();
 
-struct buf* buf_read(struct disk *disk, uint32_t block_no);
+struct buf *buf_read(struct disk *disk, uint32_t block_no);
 void buf_write(struct buf *buf);
 void buf_release(struct buf *buf);
 

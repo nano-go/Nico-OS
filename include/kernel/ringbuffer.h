@@ -1,9 +1,9 @@
 #ifndef _KERNEL_RINGBUFFER_H
 #define _KERNEL_RINGBUFFER_H
 
+#include "defs.h"
 #include "semaphore.h"
 #include "spinlock.h"
-#include "defs.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -11,9 +11,9 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-enum ringbuffer_chan{
-	RBUF_WRITE,
-	RBUF_READ,
+enum ringbuffer_chan {
+    RBUF_WRITE,
+    RBUF_READ,
 };
 
 /**
@@ -24,15 +24,15 @@ enum ringbuffer_chan{
  *              tail        head
  */
 struct ringbuffer {
-	char *buf;
-	uint32_t size;
-	uint32_t head;
-	uint32_t tail;
-	bool rclosed;
-	bool wclosed;
-	struct spinlock mutex;
-	struct semaphore empty_sem;
-	struct semaphore full_sem;
+    char *buf;
+    uint32_t size;
+    uint32_t head;
+    uint32_t tail;
+    bool rclosed;
+    bool wclosed;
+    struct spinlock mutex;
+    struct semaphore empty_sem;
+    struct semaphore full_sem;
 };
 
 void ringbuffer_init(struct ringbuffer *rbuf, char *buf, uint32_t size);

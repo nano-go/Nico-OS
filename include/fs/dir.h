@@ -1,8 +1,8 @@
 #ifndef _FS_DIR_H
 #define _FS_DIR_H
 
-#include "inodes.h"
 #include "dirent.h"
+#include "inodes.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -44,7 +44,7 @@ int dir_isempty(struct inode *dir);
 
 /**
  * Write "." and ".." into the directory @dir.
- * Directory @dir must be a subdirectory of @parent unless the @dir is 
+ * Directory @dir must be a subdirectory of @parent unless the @dir is
  * the root directory.
  *
  * Tree:

@@ -20,14 +20,14 @@ void sem_wait(struct semaphore *sem) {
 	spinlock_acquire(&sem->slock, &int_save);
 
 	struct task_struct *cur_task = get_current_task();
-	
-	if (-- sem->val < 0) {
+
+	if (--sem->val < 0) {
 		ASSERT(cur_task->state == TASK_RUNNING);
 		// add the current task to the waiting queue and block it.
 		list_offer(&sem->waiting_tasks, &cur_task->sem_wait_node);
 		task_block();
 	}
-	
+
 	sem->holder = cur_task;
 	spinlock_release(&sem->slock, &int_save);
 }
@@ -39,8 +39,8 @@ void sem_signal(struct semaphore *sem) {
 	if (++sem->val <= 0) {
 		ASSERT(!list_empty(&sem->waiting_tasks));
 		// Fetch a waiting task and wakeup it.
-		struct task_struct *task = NODE_AS(
-			struct task_struct, list_poll(&sem->waiting_tasks), sem_wait_node);
+		struct task_struct *task =
+			NODE_AS(struct task_struct, list_poll(&sem->waiting_tasks), sem_wait_node);
 		ASSERT(task->state == TASK_BLOCKED);
 		task_wakeup(task);
 	}
@@ -56,12 +56,11 @@ void sem_signalall(struct semaphore *sem) {
 	while (++sem->val <= 0) {
 		ASSERT(!list_empty(&sem->waiting_tasks));
 		struct list_node *n = list_poll(&sem->waiting_tasks);
-		struct task_struct *task =
-			NODE_AS(struct task_struct, n, sem_wait_node);
+		struct task_struct *task = NODE_AS(struct task_struct, n, sem_wait_node);
 		ASSERT(task->state == TASK_BLOCKED);
 		task_wakeup(task);
 	}
-	
+
 	sem->holder = NULL;
 	spinlock_release(&sem->slock, &int_save);
 }

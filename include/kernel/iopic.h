@@ -1,8 +1,8 @@
 #ifndef _KERNEL_IOPIC_H
 #define _KERNEL_IOPIC_H
 
-#include "trap.h"
 #include "defs.h"
+#include "trap.h"
 
 #ifdef __cplusplus
 #if __cplusplus

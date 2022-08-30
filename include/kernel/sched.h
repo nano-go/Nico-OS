@@ -4,8 +4,8 @@
 #include "list.h"
 #include "task.h"
 
-#include "stdint.h"
 #include "stdbool.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 #if __cplusplus

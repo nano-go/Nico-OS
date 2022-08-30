@@ -25,7 +25,7 @@ typedef uint32_t pg_attr_t;
 extern pgdir_t kpgdir;
 
 // pmemory.c
-void* palloc();
+void *palloc();
 void pfree(void *page);
 
 // pgtab.c
@@ -47,8 +47,7 @@ void pgdir_free(pgdir_t pgdir);
 /**
  * Allocate [vaddr, vaddr+pgcnt*PG_SIZE) address space.
  */
-bool pgdir_valloc(pgdir_t pgdir, uint32_t vaddr, uint32_t pg_cnt,
-				  pg_attr_t attr);
+bool pgdir_valloc(pgdir_t pgdir, uint32_t vaddr, uint32_t pg_cnt, pg_attr_t attr);
 
 /**
  * Return a copy of the given pgdir or NULL if copy failed.

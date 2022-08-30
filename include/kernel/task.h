@@ -12,10 +12,10 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define TASK_NAME_LENGTH 32	 // Maximum length of task's name.
-#define NTASK			 128 // Maximum number of all tasks.
-#define NOFILE			 16	 // Maximum number of open files per process.
-#define NPAGE_KSTACK	 1	 // Page number of a kernel stack.
+#define TASK_NAME_LENGTH 32  // Maximum length of task's name.
+#define NTASK            128 // Maximum number of all tasks.
+#define NOFILE           16  // Maximum number of open files per process.
+#define NPAGE_KSTACK     1   // Page number of a kernel stack.
 
 // Top kernel stack pointer for the task.
 #define TASK_KSTACK_PTR(task) ((uint32_t)(task)->kstack_ptr + NPAGE_KSTACK * PG_SIZE)
@@ -26,48 +26,48 @@ extern "C" {
 #define KILLED_TASK_EXITSTATUS 100
 
 enum task_status {
-	TASK_UNUSED,	// Placed into the task table, to be allocated.
-	TASK_ALLOCATED, // Allocated but not yet run.
-	TASK_READY,		// Placed into a ready qeueu waiting for its turn to execute.
-	TASK_RUNNING,	// Running on the CPU.
-	TASK_BLOCKED,	// Blocked, waiting for signals.
-	TASK_WAITING,	// Blocked(cause task_wait), waiting for a child task exiting.
-	TASK_ZOMBIE,	// Exited, waiting for a task to free it(call task_wait).
+    TASK_UNUSED,    // Placed into the task table, to be allocated.
+    TASK_ALLOCATED, // Allocated but not yet run.
+    TASK_READY,     // Placed into a ready qeueu waiting for its turn to execute.
+    TASK_RUNNING,   // Running on the CPU.
+    TASK_BLOCKED,   // Blocked, waiting for signals.
+    TASK_WAITING,   // Blocked(cause task_wait), waiting for a child task exiting.
+    TASK_ZOMBIE,    // Exited, waiting for a task to free it(call task_wait).
 };
 
 typedef void (*thread_fn)(void *data);
 typedef volatile int32_t pid_t;
 
 struct context {
-	uint edi;
-	uint esi;
-	uint ebx;
-	uint ebp;
-	uint eip;
+    uint edi;
+    uint esi;
+    uint ebx;
+    uint ebp;
+    uint eip;
 };
 
 // PCB
 struct task_struct {
 
-	pid_t pid;
+    pid_t pid;
 
-	char name[TASK_NAME_LENGTH];
-	enum task_status state;
-	uint32_t time_slice;
-	uint32_t priority;
+    char name[TASK_NAME_LENGTH];
+    enum task_status state;
+    uint32_t time_slice;
+    uint32_t priority;
 
-	struct trap_frame *tf;		 // Trap frame for current syscall.
-	struct context *context;	 // Switch here to run.
-	void *kstack_ptr;			 // Bottom of kernel stack for this task.
-	struct vm *vm;				 // Isolated virtual memory space.
-	struct task_struct *parent;	 // Parent task.
-	bool killed;				 // If true, have been killed.
-	int exit_status;			 // Exit status code.
-	struct file *ofiles[NOFILE]; // Open files
-	struct inode *cwd;			 // Current directory.
+    struct trap_frame *tf;       // Trap frame for current syscall.
+    struct context *context;     // Switch here to run.
+    void *kstack_ptr;            // Bottom of kernel stack for this task.
+    struct vm *vm;               // Isolated virtual memory space.
+    struct task_struct *parent;  // Parent task.
+    bool killed;                 // If true, have been killed.
+    int exit_status;             // Exit status code.
+    struct file *ofiles[NOFILE]; // Open files
+    struct inode *cwd;           // Current directory.
 
-	struct list_node ready_queue_node;
-	struct list_node sem_wait_node;
+    struct list_node ready_queue_node;
+    struct list_node sem_wait_node;
 };
 
 /**
@@ -85,11 +85,11 @@ struct task_struct *get_current_task();
  * @return - The new task or NULL if fail to create a task.
  */
 struct task_struct *kthread_create(thread_fn fn, void *data, uint32_t priority, const char *namefmt,
-								   ...);
+                                   ...);
 #define kthread_start(thread_fn, data, priority, ...)                                              \
-	do {                                                                                           \
-		task_start(kthread_create(thread_fn, data, priority, __VA_ARGS__));                        \
-	} while (0)
+    do {                                                                                           \
+        task_start(kthread_create(thread_fn, data, priority, __VA_ARGS__));                        \
+    } while (0)
 #define task_start(task) task_wakeup(task)
 
 /**
