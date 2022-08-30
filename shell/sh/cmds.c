@@ -11,14 +11,14 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define CMD_NEW(cmd, size, typ)                                                \
-	do {                                                                       \
-		cmd = malloc(size);                                                    \
-		if (cmd == NULL) {                                                     \
-			printf("sh: out of memory.\n");                                    \
-			exit(1);                                                            \
-		}                                                                      \
-		cmd->type = typ;                                                       \
+#define CMD_NEW(cmd, size, typ)                                                                    \
+	do {                                                                                           \
+		cmd = malloc(size);                                                                        \
+		if (cmd == NULL) {                                                                         \
+			printf("sh: out of memory.\n");                                                        \
+			exit(1);                                                                               \
+		}                                                                                          \
+		cmd->type = typ;                                                                           \
 	} while (0)
 
 struct exec_cmd *cmd_newexec() {
@@ -31,8 +31,7 @@ struct exec_cmd *cmd_newexec() {
 	return cmd;
 }
 
-struct redir_cmd *cmd_newredir(struct cmd *child, int fd, char *file, int flen,
-							   int mode) {
+struct redir_cmd *cmd_newredir(struct cmd *child, int fd, int mode, char *file, int flen) {
 	struct redir_cmd *cmd;
 	CMD_NEW(cmd, sizeof *cmd + flen + 1, CMD_REDIR);
 	cmd->cmd = child;
@@ -66,8 +65,7 @@ struct pipe_cmd *cmd_newpipe(struct cmd *left, struct cmd *right) {
 	return cmd;
 }
 
-struct binary_cmd *cmd_newbinary(struct cmd *left, struct cmd *right,
-								 enum token_type operator) {
+struct binary_cmd *cmd_newbinary(struct cmd *left, struct cmd *right, enum token_type operator) {
 	struct binary_cmd *cmd;
 	CMD_NEW(cmd, sizeof *cmd, CMD_BINARY);
 	cmd->left = left;

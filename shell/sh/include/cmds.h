@@ -20,8 +20,7 @@ enum cmd_type {
 	CMD_BINARY,
 };
 
-#define CMD_HEADER                                                             \
-	enum cmd_type type;                                                        \
+#define CMD_HEADER enum cmd_type type;
 
 struct cmd {
 	CMD_HEADER;
@@ -36,9 +35,9 @@ struct exec_cmd {
 struct redir_cmd {
 	CMD_HEADER;
 	struct cmd *cmd;
-	int fd;          // close fd
-	int mode;        // file flags.
-	char file[];	 // open the file;
+	int fd;		 // close fd
+	int mode;	 // file flags.
+	char file[]; // open the file;
 };
 
 struct list_cmd {
@@ -67,13 +66,11 @@ struct binary_cmd {
 };
 
 struct exec_cmd *cmd_newexec();
-struct redir_cmd *cmd_newredir(struct cmd *cmd, int fd, char *file, int flen,
-							   int mode);
+struct redir_cmd *cmd_newredir(struct cmd *child, int fd, int mode, char *file, int flen);
 struct list_cmd *cmd_newlist(struct cmd *left, struct cmd *right);
 struct back_cmd *cmd_newback(struct cmd *cmd);
 struct pipe_cmd *cmd_newpipe(struct cmd *left, struct cmd *right);
-struct binary_cmd *cmd_newbinary(struct cmd *left, struct cmd *right,
-								 enum token_type operator);
+struct binary_cmd *cmd_newbinary(struct cmd *left, struct cmd *right, enum token_type operator);
 
 void cmd_free(struct cmd *);
 #ifdef __cplusplus
