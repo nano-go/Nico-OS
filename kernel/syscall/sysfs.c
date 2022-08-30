@@ -55,29 +55,30 @@ static struct inode *create_file(char *path, enum inode_type typ) {
 	dir = ip = NULL;
 	disk = get_current_disk();
 
-	log_begin_op(disk->log);
-	
-	// find parent directory.
-	dir = path_lookup_parent(disk, path, name);
-	if (dir == NULL) {
-		goto bad;
-	}
-	inode_lock(dir);
-	ASSERT(dir->disk_inode.type == INODE_DIRECTORY);
-	
-	if (!path_valid_name(name)) {
-		goto bad;
-	}
+    dir = path_lookup_parent(disk, path, name);
+    if (dir == NULL) {
+        return NULL;
+    }
+    if (!path_valid_name(name)) {
+        // The name is invalid.
+        inode_put(dir);
+        return NULL;
+    }
 
-	if ((ip = dir_lookup(dir, name, NULL)) != NULL) { 
-		// The file has been created.
-		inode_lock(ip);
-		if (ip->disk_inode.type == typ && typ == INODE_FILE) {
-			goto success;
-		}
-		goto bad;
-	}
-	
+    inode_lock(dir);
+    // Ensure that the dir is a directory.
+    ASSERT(dir->disk_inode.type == INODE_DIRECTORY);
+
+    if ((ip = dir_lookup(dir, name, NULL)) != NULL) {
+        // The file exists.
+        inode_lock(ip);
+        if (ip->disk_inode.type == typ && typ == INODE_FILE) {
+            // If caller want to create a FILE and the existed inode is a FILE, return it.
+            goto success;
+        }
+        goto bad;
+    }
+
 	// Create a new inode.
 	if ((ip = inode_alloc(disk, typ)) == NULL) {
 		goto bad;
@@ -103,20 +104,18 @@ static struct inode *create_file(char *path, enum inode_type typ) {
 	}
 
 success:
-	inode_unlock(ip);
-	inode_unlockput(dir);
-	log_end_op(disk->log);
-	return ip;
+    inode_unlock(ip);
+    inode_unlockput(dir);
+    return ip;
 
 bad:
-	if (ip != NULL) {
-		inode_unlockput(ip);
-	}
-	if (dir != NULL) {
-		inode_unlockput(dir);
-	}
-	log_end_op(disk->log);
-	return NULL;
+    if (ip != NULL) {
+        inode_unlockput(ip);
+    }
+    if (dir != NULL) {
+        inode_unlockput(dir);
+    }
+    return NULL;
 }
 
 int sys_open(struct trap_frame *tf) {
