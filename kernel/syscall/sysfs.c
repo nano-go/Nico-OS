@@ -101,19 +101,19 @@ static struct inode *create_file(char *path, enum inode_type typ) {
 		// @dir is the parent of @ip.
 		dir_make(dir, ip);
 	}
-	
+
 success:
-	inode_unlockput(dir);
 	inode_unlock(ip);
+	inode_unlockput(dir);
 	log_end_op(disk->log);
 	return ip;
-	
+
 bad:
-	if (dir != NULL) {
-		inode_unlockput(dir);
-	}
 	if (ip != NULL) {
 		inode_unlockput(ip);
+	}
+	if (dir != NULL) {
+		inode_unlockput(dir);
 	}
 	log_end_op(disk->log);
 	return NULL;

@@ -64,17 +64,21 @@ void file_close(struct file *f) {
 		spinlock_release(&ftable.lock, &int_save);
 		return;
 	}
-	
+
 	enum fd_type typ = f->type;
+	struct inode *ip = f->inode;
+	struct pipe *pipe = f->pipe;
+	bool writable = f->writable;
+
 	f->type = FD_NONE;
 	spinlock_release(&ftable.lock, &int_save);
 
 	if (typ == FD_INODE) {
-		log_begin_op(f->inode->disk->log);
-		inode_put(f->inode);
-		log_end_op(f->inode->disk->log);
+		log_begin_op(ip->disk->log);
+		inode_put(ip);
+		log_end_op(ip->disk->log);
 	} else if (typ == FD_PIPE) {
-		pipe_close(f->pipe, f->writable);
+		pipe_close(pipe, writable);
 	}
 }
 
