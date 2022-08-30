@@ -1,5 +1,4 @@
 Language:        Cpp
-# BasedOnStyle:  LLVM
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
@@ -9,9 +8,9 @@ AlignEscapedNewlines: Right
 AlignOperands: true
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakAfterDefinitionReturnType: None
@@ -103,4 +102,4 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 Standard:        Cpp11
 TabWidth:        4
-UseTab:          Always
+# UseTab:          Always
