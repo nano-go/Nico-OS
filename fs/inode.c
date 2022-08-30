@@ -305,7 +305,6 @@ int inode_write(struct inode *ip, void *src, uint32_t offset, uint32_t n) {
 		memcpy(buf->data + (offset % BLOCK_SIZE), src, m);
 
 		log_write(ip->disk->log, buf);
-		buf_write(buf);
 		buf_release(buf);
 	}
 
