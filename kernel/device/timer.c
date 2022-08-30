@@ -13,9 +13,9 @@ extern "C" {
 #define INPUT_FREQUENCY  1193180
 
 /**
- * 100 time interrupts per 1 second.
+ * 1000 time interrupts per 1 second.
  */
-#define IRQ0_FREQUENCY  100
+#define IRQ0_FREQUENCY 1000
 
 
 #define PIC_COUNTER0     0b00
