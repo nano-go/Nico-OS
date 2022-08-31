@@ -32,12 +32,22 @@ extern "C" {
 #define FREE_LAST_PDE_NR    ((FREE_TOP >> 20) / sizeof(pte_t) - 1)
 #define USER_LAST_PDE_NR    ((KERNEL_BASE >> 20) / sizeof(pte_t) - 1)
 
-#define PG_VADDR(d, t, o) ((uint32_t)(((d) << PDE_NR_SHIFT) | ((t) << PTE_NR_SHIFT) | (o)))
-
 #define PG_US(isuser) ((isuser) ? PG_US_USER : PG_US_SUPER)
 
 #define PDE_IS_PRESENT(pde) (((uint32_t)(pde) &PG_PRESENT) != 0)
 #define PTE_IS_PRESENT(pte) (((uint32_t)(pte) &PG_PRESENT) != 0)
+
+// Gets the physical address part of the given pde.
+#define PDE_PADDR(pde) ((pde) &0xFFFFF000)
+// Gets the physical address part of the given pte.
+#define PTE_PADDR(pte) ((pte) &0xFFFFF000)
+
+#define PDE_VADDR(pde) (KV2P((pde) &0xFFFFF000))
+#define PTE_VADDR(pte) (KV2P((pte) &0xFFFFF000))
+
+// Gets the specified page table(pte array) from the given page directory.
+#define GET_PGTAB(pgdir, pde_nr) ((pte_t *) (PDE_VADDR((pgdir)[pde_nr])));
+
 
 pgdir_t kpgdir = (pde_t *) KP2V(KPGDIR_PADDR);
 static struct spinlock pgtab_lock;
@@ -45,8 +55,8 @@ static struct spinlock pgtab_lock;
 static pte_t *pte_ptr(pgdir_t pgdir, uint32_t vaddr) {
     uint32_t pde_nr = PDE_NR(vaddr);
     uint32_t pte_nr = PTE_NR(vaddr);
+    pte_t *pgtab = GET_PGTAB(pgdir, pde_nr);
 
-    pte_t *pgtab = KP2V(pgdir[pde_nr] & 0xFFFFF000);
     return &pgtab[pte_nr];
 }
 
@@ -57,24 +67,27 @@ static uint32_t v2p_addr(pgdir_t pgdir, uint32_t vaddr) {
     if (!PDE_IS_PRESENT(pgdir[pde_nr])) {
         PANIC("pde is not present: vaddr 0x%x", vaddr);
     }
-    pte_t *pgtab = KP2V(pgdir[pde_nr] & 0xFFFFF000);
+
+    pte_t *pgtab = GET_PGTAB(pgdir, pde_nr);
     if (!PTE_IS_PRESENT(pgtab[pte_nr])) {
         PANIC("pte is not present: vaddr 0x%x", vaddr);
     }
-    return pgtab[pte_nr] & 0xFFFFF000;
+    return PTE_PADDR(pgtab[pte_nr]);
 }
 
 void *page_frame_ptr(pgdir_t pgdir, void *vaddr) {
     uint32_t pde_nr = PDE_NR(vaddr);
     uint32_t pte_nr = PTE_NR(vaddr);
+
     if (!PDE_IS_PRESENT(pgdir[pde_nr])) {
         return NULL;
     }
-    pte_t *pgtab = KP2V(pgdir[pde_nr] & 0xFFFFF000);
+
+    pte_t *pgtab = GET_PGTAB(pgdir, pde_nr);
     if (!PTE_IS_PRESENT(pgtab[pte_nr])) {
         return NULL;
     }
-    return KP2V(pgtab[pte_nr] & 0xFFFFF000);
+    return PTE_VADDR(pgtab[pte_nr]);
 }
 
 bool map_page(pgdir_t pgdir, uint32_t vaddr, uint32_t paddr, pg_attr_t attr) {
@@ -94,7 +107,7 @@ bool map_page(pgdir_t pgdir, uint32_t vaddr, uint32_t paddr, pg_attr_t attr) {
     }
 
     pte_t *pte = pte_ptr(pgdir, vaddr);
-    ASSERT(!PTE_IS_PRESENT(pte));
+    ASSERT(!PTE_IS_PRESENT(*pte));
     *pte = paddr | attr | PG_PRESENT;
 
     spinlock_release(&pgtab_lock, &int_save);
@@ -115,7 +128,8 @@ pgdir_t pgdir_new() {
     if (pgdir != NULL) {
         bool int_save;
         spinlock_acquire(&pgtab_lock, &int_save);
-        // Copy kernel space referneces(PDE paddrs).
+        // Copy kernel space referneces(PDE paddrs) into the new page directory.
+        // All page directories share a common kernel space.
         memcpy(&pgdir[KERNEL_FIRST_PDE_NR], &kpgdir[KERNEL_FIRST_PDE_NR],
                (KERNEL_LAST_PDE_NR - KERNEL_FIRST_PDE_NR + 1) * sizeof(pte_t));
         spinlock_release(&pgtab_lock, &int_save);
@@ -130,17 +144,17 @@ void pgdir_free(pgdir_t pgdir) {
         if (!PDE_IS_PRESENT(pde)) {
             continue;
         }
-        pte_t *pgtab = KP2V(pde & 0xFFFFF000);
+        pte_t *pgtab = PDE_VADDR(pde);
         for (int pte_nr = 0; pte_nr < 1024; pte_nr++) {
             pte_t pte = pgtab[pte_nr];
             if (PTE_IS_PRESENT(pte)) {
-                void *page_frame = (void *) (pte & 0xFFFFF000);
+                void *page_frame = (void *) PTE_PADDR(pte);
                 memset(KP2V(page_frame), 0, PG_SIZE);
                 pfree(page_frame);
             }
             pgtab[pte_nr] = 0;
         }
-        pfree(KV2P(pgtab));
+        free_page(pgtab);
     }
     free_page(pgdir);
 }
@@ -179,7 +193,7 @@ static bool pgtab_copy(pte_t *src, pte_t *dst) {
                 return false;
             }
             dst[pte_nr] = paddr | PG_RW_RW | PG_US_USER | PG_PRESENT;
-            uint8_t *src_page = (uint8_t *) KP2V(pte & 0xFFFFF000);
+            uint8_t *src_page = (uint8_t *) KP2V(PTE_PADDR(pte));
             uint8_t *dst_page = (uint8_t *) KP2V(paddr);
             memcpy(dst_page, src_page, PG_SIZE);
         }
@@ -204,7 +218,7 @@ pgdir_t pgdir_copy(pgdir_t pgdir) {
         }
         cp[pde_nr] = paddr | PG_RW_RW | PG_US_USER | PG_PRESENT;
 
-        pte_t *src_pgtab = (pte_t *) KP2V(pde & 0xFFFFF000);
+        pte_t *src_pgtab = (pte_t *) KP2V(PDE_PADDR(pde));
         pte_t *dst_pgtab = (pte_t *) KP2V(paddr);
 
         if (!pgtab_copy(src_pgtab, dst_pgtab)) {
