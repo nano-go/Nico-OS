@@ -136,6 +136,10 @@ static inline struct list_node *list_get(struct list *l, uint32_t idx) {
     return n;
 }
 
+static inline bool is_unlinked_node(struct list_node *n) {
+    return n->prev == NULL && n->next == NULL;
+}
+
 #ifdef __cplusplus
 #if __cplusplus
 }
