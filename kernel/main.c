@@ -6,6 +6,7 @@
 #include "kernel/keyboard.h"
 #include "kernel/memory.h"
 #include "kernel/proc.h"
+#include "kernel/sched.h"
 #include "kernel/semaphore.h"
 #include "kernel/syscall_init.h"
 #include "kernel/task.h"
@@ -29,6 +30,7 @@ static void init_all() {
     iopic_init();
     mem_init();
     task_init();
+    sched_init();
     timer_init();
     syscall_init();
 

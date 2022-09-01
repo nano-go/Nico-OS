@@ -10,7 +10,7 @@
 #include "fs/inodes.h"
 #include "fs/log.h"
 
-#include "include/task_pri.h"
+#include "sched/task_pri.h"
 
 #include "stdarg.h"
 #include "stdio.h"
@@ -28,8 +28,6 @@ static pid_t next_pid = 0;
 
 struct task_struct task_table[NTASK];
 struct spinlock tblock;
-
-struct list ready_queue;
 
 struct task_struct *idle_task;
 struct task_struct *current_task; // The task is running on the CPU.
@@ -142,7 +140,6 @@ void task_free(struct task_struct *task) {
         return;
     }
 
-    ASSERT(!list_find(&ready_queue, &task->ready_queue_node));
     ASSERT(task->state != TASK_UNUSED);
 
     if (task->state != TASK_ZOMBIE && task->state != TASK_ALLOCATED) {
@@ -190,9 +187,8 @@ void task_wakeup(struct task_struct *task) {
     bool int_save;
     INT_LOCK(int_save);
     ASSERT(task->state != TASK_RUNNING && task->state != TASK_READY);
-    ASSERT(!list_find(&ready_queue, &task->ready_queue_node));
     task->state = TASK_READY;
-    list_push(&ready_queue, &task->ready_queue_node);
+    sched_enqueue(task);
     INT_UNLOCK(int_save);
 }
 
@@ -327,7 +323,6 @@ static void setup_main_task(const char *namefmt, ...) {
 
 void task_init() {
     spinlock_init(&tblock);
-    list_init(&ready_queue);
 
     setup_main_task("%s", "kernel_main");
     setup_idle_task();

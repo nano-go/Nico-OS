@@ -14,7 +14,6 @@ extern struct task_struct *current_task;
 extern struct task_struct *idle_task;
 extern struct task_struct task_table[NTASK];
 extern struct spinlock tblock;
-extern struct list ready_queue;
 
 #define FIRST_TASK (&task_table[0])
 #define LAST_TASK  (&task_table[NTASK - 1])
