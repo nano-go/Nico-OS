@@ -29,7 +29,7 @@ int proc_fork() {
     parent = get_current_task();
     ASSERT(IS_USER_PROC(parent));
 
-    child = kthread_create(proc_entry, NULL, parent->priority, "%s-child", parent->name);
+    child = kthread_create(proc_entry, NULL, parent->priority, "%s", parent->name);
     if (child == NULL) {
         return -1;
     }
