@@ -27,7 +27,7 @@ extern "C" {
 #define PTE_NR(vaddr) ((((uint32_t)(vaddr)) >> PTE_NR_SHIFT) & 0x3FF)
 
 #define KERNEL_FIRST_PDE_NR ((KERNEL_BASE >> 20) / sizeof(pte_t))
-#define KERNEL_LAST_PDE_NR  ((VMEMOEY_TOP >> 20) / sizeof(pte_t) - 1)
+#define KERNEL_LAST_PDE_NR  ((VMEMORY_TOP >> 20) / sizeof(pte_t) - 1)
 #define FREE_FIRST_PDE_NR   ((FREE_BASE >> 20) / sizeof(pte_t))
 #define FREE_LAST_PDE_NR    ((FREE_TOP >> 20) / sizeof(pte_t) - 1)
 #define USER_LAST_PDE_NR    ((KERNEL_BASE >> 20) / sizeof(pte_t) - 1)

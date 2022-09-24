@@ -1,5 +1,5 @@
-#ifndef _KETNEL_SCHED_H
-#define _KETNEL_SCHED_H
+#ifndef _KERNEL_SCHED_H
+#define _KERNEL_SCHED_H
 
 #include "list.h"
 #include "task.h"
@@ -40,4 +40,4 @@ void sched_init();
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* _KETNEL_SCHED_H */
+#endif /* _KERNEL_SCHED_H */

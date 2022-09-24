@@ -31,12 +31,12 @@ extern "C" {
 /**
  * Memory maps (virtual addr -> physical addr):
  *
- *   KERNEL_BASE..VMEMOEY_TOP -> 0x00000000..PHY_MEMORY_TOP
+ *   KERNEL_BASE..VMEMORY_TOP -> 0x00000000..PHY_MEMORY_TOP
  *
  * Memory Layout (virtual):
  *
  *   KERNEL_BASE..0x80400000:  kernel data and code.
- *   FREE_BASE..VMEMOEY_TOP:   free memory area.
+ *   FREE_BASE..VMEMORY_TOP:   free memory area.
  *
  *   USER_BASE..USER_TOP:      user area(see proc.h)
  */
@@ -45,9 +45,9 @@ extern "C" {
 #define KERNEL_SPACE_SIZE (1024 * 1024 * 4)
 
 #define KERNEL_BASE 0x80000000
-#define VMEMOEY_TOP (KERNEL_BASE + PHY_MEMORY_TOP)
+#define VMEMORY_TOP (KERNEL_BASE + PHY_MEMORY_TOP)
 #define FREE_BASE   (KERNEL_BASE + KERNEL_SPACE_SIZE)
-#define FREE_TOP    VMEMOEY_TOP
+#define FREE_TOP    VMEMORY_TOP
 #define USER_BASE   0x04048000
 #define USER_TOP    KERNEL_BASE
 

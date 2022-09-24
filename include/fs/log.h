@@ -48,7 +48,7 @@ struct logheader {
 struct log {
     struct spinlock lock;
 
-    struct semaphore wait_sem; // Semphore used to block log_begin_op().
+    struct semaphore wait_sem; // Semaphore used to block log_begin_op().
     struct disk *disk;         // Disk device.
     int log_start;             // First block number of log.
     int outstanding;           // How many operations are executing.

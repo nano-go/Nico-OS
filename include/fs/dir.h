@@ -23,7 +23,7 @@ struct inode *dir_lookup(struct inode *dir, char *name, uint32_t *off);
  *
  * Caller must hold @dir->lock.
  */
-int dir_link(struct inode *dir, struct dirent *diren);
+int dir_link(struct inode *dir, struct dirent *dirent);
 
 /**
  * Remove the directory entry at the give offset.

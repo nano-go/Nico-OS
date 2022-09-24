@@ -1,5 +1,5 @@
-#ifndef _KETNEL_TIMER_H
-#define _KETNEL_TIMER_H
+#ifndef _KERNEL_TIME_H
+#define _KERNEL_TIME_H
 
 #include "stdbool.h"
 #include "stdint.h"
@@ -19,4 +19,4 @@ unsigned long get_tick_count();
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* _KETNEL_TIMER_H */
+#endif /* _KERNEL_TIME_H */

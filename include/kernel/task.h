@@ -1,5 +1,5 @@
-#ifndef _KETNEL_TASK_H
-#define _KETNEL_TASK_H
+#ifndef _KERNEL_TASK_H
+#define _KERNEL_TASK_H
 
 #include "defs.h"
 #include "fs/file.h"
@@ -113,7 +113,7 @@ void task_yield();
 void task_block();
 
 /**
- * Wake up the spcified task that it must be blocked. This will change the
+ * Wake up the specified task that it must be blocked. This will change the
  * task's state to TASK_READY.
  */
 void task_wakeup(struct task_struct *task);
@@ -157,4 +157,4 @@ void task_init();
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* _KETNEL_TASK_H */
+#endif /* _KERNEL_TASK_H */
